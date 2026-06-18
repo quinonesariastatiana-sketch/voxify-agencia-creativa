@@ -1261,7 +1261,12 @@ def open_browser():
 def voxify_stats():
     """Devuelve métricas reales de voxify.db para Zeus CEO."""
     import sqlite3, datetime
-    db_path = r"C:\Users\yaco8\OneDrive\Documentos\Voxify - Claude\voxify-n8n\voxify.db"
+    default_path = os.path.join(os.path.dirname(__file__), "..", "voxify-n8n", "voxify.db")
+    db_path = os.environ.get("VOXIFY_DB_PATH", default_path)
+    if not os.path.exists(db_path):
+        return jsonify({"error": "DB not mounted", "total_prospectos": 0, "calificados": 0,
+                        "nuevos": 0, "contactados": 0, "google_calls_hoy": 0,
+                        "google_costo_total": 0.0, "fecha": datetime.date.today().isoformat()}), 200
     try:
         conn = sqlite3.connect(db_path)
         c = conn.cursor()
@@ -1296,7 +1301,8 @@ def voxify_stats():
 def save_manual_lead():
     """Guarda un lead identificado manualmente (desde Zeus WhatsApp/Telegram)."""
     import sqlite3, datetime
-    db_path = r"C:\Users\yaco8\OneDrive\Documentos\Voxify - Claude\voxify-n8n\voxify.db"
+    default_path = os.path.join(os.path.dirname(__file__), "..", "voxify-n8n", "voxify.db")
+    db_path = os.environ.get("VOXIFY_DB_PATH", default_path)
     data = request.get_json(silent=True) or {}
     nombre   = (data.get("nombre_negocio") or "").strip()
     telefono = (data.get("telefono") or "").strip()
