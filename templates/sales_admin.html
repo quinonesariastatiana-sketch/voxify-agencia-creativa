@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Voxify Sales — Administrador</title>
+<style>
+:root {
+  --navy:#0A2540; --purple:#635BFF; --aqua:#20C6B7;
+  --navy-light:#0e3058; --purple-light:#ece9ff; --aqua-light:#e0faf8;
+  --bg:#f4f6fa; --card:#fff; --border:#e2e6ef;
+  --text:#1a2340; --muted:#6b7a99; --success:#22c55e;
+  --warning:#f59e0b; --danger:#ef4444;
+  --radius:12px; --shadow:0 2px 16px rgba(10,37,64,.10);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  background:var(--bg);color:var(--text);min-height:100vh;}
+
+/* NAV */
+.topnav{background:var(--navy);padding:0 28px;display:flex;align-items:center;
+  justify-content:space-between;height:60px;}
+.topnav .logo{color:#fff;font-weight:800;font-size:18px;letter-spacing:-.5px;}
+.topnav .logo span{color:var(--aqua);}
+.topnav nav a{color:rgba(255,255,255,.75);text-decoration:none;font-size:14px;
+  margin-left:24px;transition:color .2s;}
+.topnav nav a:hover,.topnav nav a.active{color:#fff;}
+
+/* TWO-PANEL LAYOUT */
+.layout{display:grid;grid-template-columns:260px 1fr;min-height:calc(100vh - 60px);}
+
+/* SIDEBAR */
+.sidebar{background:var(--navy);padding:20px 0;border-right:1px solid rgba(255,255,255,.07);}
+.sidebar-title{color:rgba(255,255,255,.45);font-size:11px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.8px;padding:0 20px;margin-bottom:10px;}
+.brand-item{display:flex;align-items:center;gap:10px;padding:11px 20px;cursor:pointer;
+  transition:background .15s;border-left:3px solid transparent;}
+.brand-item:hover{background:rgba(255,255,255,.06);}
+.brand-item.active{background:rgba(99,91,255,.25);border-left-color:var(--purple);}
+.brand-dot{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;
+  justify-content:center;font-weight:800;font-size:13px;color:#fff;flex-shrink:0;}
+.brand-item-info .bname{color:#fff;font-weight:700;font-size:14px;}
+.brand-item-info .btag{color:rgba(255,255,255,.45);font-size:12px;margin-top:1px;}
+.sidebar-sep{height:1px;background:rgba(255,255,255,.08);margin:12px 20px;}
+.sidebar-link{display:flex;align-items:center;gap:8px;padding:10px 20px;
+  color:rgba(255,255,255,.55);font-size:13px;text-decoration:none;cursor:pointer;
+  transition:color .2s;}
+.sidebar-link:hover{color:rgba(255,255,255,.9);}
+
+/* MAIN */
+.main{padding:28px 32px;overflow-y:auto;}
+.main-header{display:flex;justify-content:space-between;align-items:flex-start;
+  margin-bottom:24px;flex-wrap:wrap;gap:12px;}
+.main-header h1{font-size:22px;font-weight:800;color:var(--navy);}
+.main-header p{color:var(--muted);font-size:14px;margin-top:3px;}
+
+/* PLACEHOLDER */
+.placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-height:400px;gap:12px;color:var(--muted);}
+.placeholder .icon{font-size:48px;}
+.placeholder h2{font-size:18px;font-weight:700;color:var(--navy);}
+
+/* KPI ROW */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px;}
+.kpi{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);
+  padding:16px 18px;border-top:3px solid var(--purple);}
+.kpi.k-aqua{border-top-color:var(--aqua);}
+.kpi.k-success{border-top-color:var(--success);}
+.kpi.k-danger{border-top-color:var(--danger);}
+.kpi .val{font-size:26px;font-weight:900;color:var(--navy);}
+.kpi .lbl{font-size:12px;color:var(--muted);margin-top:2px;}
+
+/* BRAND CARD */
+.brand-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);
+  padding:20px 24px;margin-bottom:20px;display:flex;gap:20px;align-items:center;
+  border-left:5px solid var(--purple);}
+.brand-card-logo{width:56px;height:56px;border-radius:12px;display:flex;
+  align-items:center;justify-content:center;font-weight:900;font-size:20px;
+  color:#fff;flex-shrink:0;overflow:hidden;}
+.brand-card-logo img{width:100%;height:100%;object-fit:cover;}
+.brand-card-info{flex:1;}
+.brand-card-info h2{font-size:18px;font-weight:800;color:var(--navy);}
+.brand-card-info .tagline{color:var(--muted);font-size:13px;margin-top:2px;}
+.brand-card-info .meta{display:flex;gap:14px;margin-top:8px;flex-wrap:wrap;}
+.brand-card-info .meta span{font-size:12px;color:var(--muted);}
+.brand-card-info .meta a{color:var(--purple);text-decoration:none;font-size:12px;}
+.brand-card-actions{display:flex;flex-direction:column;gap:6px;align-items:flex-end;}
+
+/* WIZARD */
+.wizard-steps{display:flex;gap:0;margin-bottom:24px;position:relative;}
+.wizard-steps::before{content:'';position:absolute;top:19px;left:20px;right:20px;
+  height:2px;background:var(--border);z-index:0;}
+.step-dot{display:flex;flex-direction:column;align-items:center;gap:6px;
+  flex:1;position:relative;z-index:1;cursor:pointer;}
+.step-num{width:38px;height:38px;border-radius:50%;border:2px solid var(--border);
+  background:#fff;display:flex;align-items:center;justify-content:center;
+  font-weight:700;font-size:13px;color:var(--muted);transition:all .25s;}
+.step-dot.active .step-num{background:var(--purple);border-color:var(--purple);
+  color:#fff;box-shadow:0 0 0 4px var(--purple-light);}
+.step-dot.done .step-num{background:var(--success);border-color:var(--success);color:#fff;}
+.step-dot.done .step-num::after{content:'✓';}
+.step-label{font-size:11px;color:var(--muted);text-align:center;max-width:72px;font-weight:600;}
+.step-dot.active .step-label{color:var(--purple);}
+
+/* WIZARD CARD */
+.wizard-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;}
+.wizard-card-header{background:linear-gradient(135deg,var(--navy),var(--navy-light));padding:20px 28px;}
+.wizard-card-header h2{color:#fff;font-size:18px;font-weight:800;}
+.wizard-card-header p{color:rgba(255,255,255,.6);margin-top:3px;font-size:13px;}
+.wizard-card-body{padding:28px;}
+.wizard-card-footer{padding:16px 28px;background:#f8f9fd;border-top:1px solid var(--border);
+  display:flex;justify-content:space-between;align-items:center;}
+
+/* FORM */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+.form-group{display:flex;flex-direction:column;gap:6px;}
+.form-group.full{grid-column:1/-1;}
+label{font-size:13px;font-weight:600;color:var(--navy);}
+label .hint{font-weight:400;color:var(--muted);margin-left:5px;}
+input,select,textarea{padding:9px 13px;border:1.5px solid var(--border);border-radius:8px;
+  font-size:13px;color:var(--text);background:#fff;transition:border .2s;
+  font-family:inherit;width:100%;}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--purple);
+  box-shadow:0 0 0 3px var(--purple-light);}
+textarea{resize:vertical;min-height:80px;}
+.readonly-field{padding:9px 13px;border:1.5px dashed var(--border);border-radius:8px;
+  font-size:13px;background:#f8f9fd;color:var(--muted);}
+
+/* SECTION TITLE */
+.section-title{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;
+  letter-spacing:.8px;margin:22px 0 12px;padding-bottom:7px;border-bottom:1.5px solid var(--border);}
+
+/* PILLS */
+.pill-group{display:flex;gap:7px;flex-wrap:wrap;}
+.pill{padding:6px 14px;border-radius:30px;border:1.5px solid var(--border);
+  font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;
+  user-select:none;background:#fff;color:var(--muted);}
+.pill.selected{border-color:var(--purple);background:var(--purple-light);color:var(--purple);}
+.pill:hover{border-color:var(--purple);}
+
+/* TAG INPUT */
+.tag-input-wrap{border:1.5px solid var(--border);border-radius:8px;padding:7px;
+  display:flex;flex-wrap:wrap;gap:5px;background:#fff;cursor:text;transition:border .2s;}
+.tag-input-wrap:focus-within{border-color:var(--purple);box-shadow:0 0 0 3px var(--purple-light);}
+.tag{background:var(--purple-light);color:var(--purple);border-radius:20px;
+  padding:3px 10px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:4px;}
+.tag-remove{cursor:pointer;opacity:.6;font-size:14px;}
+.tag-remove:hover{opacity:1;}
+.tag-input-wrap input{border:none;outline:none;font-size:13px;flex:1;min-width:100px;padding:2px 4px;}
+
+/* CATALOG */
+.catalog-item{background:#f8f9fd;border-radius:10px;padding:16px;margin-bottom:10px;
+  border:1.5px solid var(--border);}
+.catalog-item-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+.catalog-item-header span{font-weight:700;color:var(--navy);font-size:13px;}
+.btn-remove{background:none;border:none;color:var(--danger);cursor:pointer;font-size:18px;padding:2px;}
+
+/* STAGE BADGES */
+.stage-list{display:flex;border:1.5px solid var(--border);border-radius:8px;overflow:hidden;}
+.stage-badge{flex:1;text-align:center;padding:9px 4px;font-size:11px;font-weight:700;
+  border-right:1px solid var(--border);}
+.stage-badge:last-child{border-right:none;}
+.s0{background:#f1f5f9;color:#64748b;}.s1{background:#dbeafe;color:#1d4ed8;}
+.s2{background:#d1fae5;color:#065f46;}.s3{background:#fef3c7;color:#92400e;}
+.s4{background:#fce7f3;color:#9d174d;}.s5{background:#dcfce7;color:#166534;}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 20px;border-radius:8px;
+  font-size:13px;font-weight:700;cursor:pointer;border:none;transition:all .2s;text-decoration:none;}
+.btn-primary{background:var(--purple);color:#fff;}
+.btn-primary:hover{background:#4f49cc;transform:translateY(-1px);}
+.btn-secondary{background:#fff;color:var(--navy);border:1.5px solid var(--border);}
+.btn-secondary:hover{border-color:var(--purple);color:var(--purple);}
+.btn-success{background:var(--success);color:#fff;}
+.btn-sm{padding:6px 14px;font-size:12px;}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none!important;}
+
+/* REPORT */
+.report-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);
+  padding:20px;margin-top:20px;}
+.report-card h3{font-size:15px;font-weight:800;color:var(--navy);margin-bottom:12px;}
+.rec-list{list-style:none;}
+.rec-list li{padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;
+  display:flex;gap:8px;}
+.rec-list li:last-child{border-bottom:none;}
+.rec-list li::before{content:'→';color:var(--purple);font-weight:700;}
+
+/* MODAL */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);
+  z-index:999;align-items:center;justify-content:center;}
+.modal-bg.open{display:flex;}
+.modal{background:#fff;border-radius:var(--radius);padding:28px;max-width:440px;
+  width:90%;box-shadow:var(--shadow);}
+.modal h3{font-size:17px;font-weight:800;color:var(--navy);margin-bottom:16px;}
+
+/* TOAST */
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+  background:var(--navy);color:#fff;padding:10px 22px;border-radius:30px;
+  font-size:13px;font-weight:600;opacity:0;transition:opacity .3s;
+  z-index:9999;pointer-events:none;}
+#toast.show{opacity:1;}
+
+@media(max-width:768px){
+  .layout{grid-template-columns:1fr;}
+  .sidebar{display:none;}
+  .form-grid{grid-template-columns:1fr;}
+  .kpi-row{grid-template-columns:repeat(2,1fr);}
+}
+</style>
+</head>
+<body>
+
+<nav class="topnav">
+  <div class="logo">Voxify <span>Sales</span></div>
+  <nav>
+    <a href="/sales/admin" class="active">Administrador</a>
+    <a href="/sales/user">Mi Equipo</a>
+    <a href="/">← Volver</a>
+  </nav>
+</nav>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-title">Marcas</div>
+    <div id="brand-list">
+      <div style="padding:16px;color:rgba(255,255,255,.35);font-size:13px">Cargando...</div>
+    </div>
+    <div class="sidebar-sep"></div>
+    <a class="sidebar-link" href="/sales/user">👥 Portal del equipo</a>
+    <a class="sidebar-link" href="/">← Volver a Voxify</a>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main" id="main-panel">
+    <!-- Placeholder -->
+    <div class="placeholder" id="placeholder">
+      <div class="icon">🎯</div>
+      <h2>Selecciona una marca</h2>
+      <p style="font-size:14px;text-align:center;max-width:300px">
+        Elige una marca del panel izquierdo para configurar su agente de ventas 24/7
+      </p>
+    </div>
+
+    <!-- Brand content -->
+    <div id="brand-content" style="display:none">
+      <div class="main-header">
+        <div>
+          <h1 id="main-title">Agente de ventas</h1>
+          <p id="main-sub">Configura el agente para esta marca</p>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-secondary btn-sm" onclick="generateReport()">📊 Reporte diario</button>
+          <button class="btn btn-secondary btn-sm" onclick="openLeadsModal()">⚡ Generar leads</button>
+          <a href="/sales/user" class="btn btn-primary btn-sm">👥 Ver equipo →</a>
+        </div>
+      </div>
+
+      <!-- KPIs -->
+      <div class="kpi-row">
+        <div class="kpi"><div class="val" id="k-total">—</div><div class="lbl">Leads totales</div></div>
+        <div class="kpi k-aqua"><div class="val" id="k-score">—</div><div class="lbl">Score promedio</div></div>
+        <div class="kpi k-success"><div class="val" id="k-closed">—</div><div class="lbl">Cerrados este mes</div></div>
+        <div class="kpi k-danger"><div class="val" id="k-esc">—</div><div class="lbl">Escalamientos</div></div>
+      </div>
+
+      <!-- Brand info card (read-only) -->
+      <div class="brand-card" id="brand-info-card">
+        <div class="brand-card-logo" id="brand-logo-el"></div>
+        <div class="brand-card-info">
+          <h2 id="bc-name">—</h2>
+          <div class="tagline" id="bc-tagline"></div>
+          <div class="meta">
+            <span>🏭 <span id="bc-industry">—</span></span>
+            <span>🌎 <span id="bc-geo">—</span></span>
+            <a id="bc-web" href="#" target="_blank">🔗 Sitio web</a>
+          </div>
+        </div>
+        <div class="brand-card-actions">
+          <a href="/" class="btn btn-secondary btn-sm">✏️ Editar marca</a>
+          <div id="sales-status-badge" style="font-size:11px;font-weight:700;padding:3px 10px;
+            border-radius:20px;margin-top:4px"></div>
+        </div>
+      </div>
+
+      <!-- Wizard steps (5 steps, identity comes from brand card) -->
+      <div class="wizard-steps">
+        <div class="step-dot active" onclick="goStep(1)" data-step="1">
+          <div class="step-num">1</div><div class="step-label">Negocio</div>
+        </div>
+        <div class="step-dot" onclick="goStep(2)" data-step="2">
+          <div class="step-num">2</div><div class="step-label">ICP</div>
+        </div>
+        <div class="step-dot" onclick="goStep(3)" data-step="3">
+          <div class="step-num">3</div><div class="step-label">Catálogo</div>
+        </div>
+        <div class="step-dot" onclick="goStep(4)" data-step="4">
+          <div class="step-num">4</div><div class="step-label">Pipeline</div>
+        </div>
+        <div class="step-dot" onclick="goStep(5)" data-step="5">
+          <div class="step-num">5</div><div class="step-label">Voz</div>
+        </div>
+      </div>
+
+      <!-- Step 1: Business -->
+      <div class="wizard-card" id="step-1">
+        <div class="wizard-card-header">
+          <h2>Paso 1 — Tipo de Negocio</h2>
+          <p>Cómo el agente estructura las conversaciones para <span id="s1-brand-name">esta marca</span></p>
+        </div>
+        <div class="wizard-card-body">
+          <div class="section-title">Modelo de negocio</div>
+          <div class="pill-group" id="s1-model">
+            <div class="pill selected" data-val="B2B" onclick="togglePillSingle(this,'s1-model')">B2B — Vendo a empresas</div>
+            <div class="pill" data-val="B2C" onclick="togglePillSingle(this,'s1-model')">B2C — Vendo a personas</div>
+            <div class="pill" data-val="B2B2C" onclick="togglePillSingle(this,'s1-model')">B2B2C — Ambos</div>
+          </div>
+          <div class="section-title">¿Qué vendes?</div>
+          <div class="pill-group" id="s1-type">
+            <div class="pill selected" data-val="products" onclick="togglePill(this,'s1-type')">📦 Productos físicos</div>
+            <div class="pill" data-val="services" onclick="togglePill(this,'s1-type')">🛠️ Servicios</div>
+            <div class="pill" data-val="subscriptions" onclick="togglePill(this,'s1-type')">🔄 Suscripciones</div>
+            <div class="pill" data-val="saas" onclick="togglePill(this,'s1-type')">💻 SaaS / Software</div>
+            <div class="pill" data-val="consulting" onclick="togglePill(this,'s1-type')">🎯 Consultoría</div>
+          </div>
+          <div class="section-title">Ciclo de venta típico</div>
+          <div class="pill-group" id="s1-cycle">
+            <div class="pill" data-val="same_day" onclick="togglePillSingle(this,'s1-cycle')">Mismo día</div>
+            <div class="pill" data-val="1_week" onclick="togglePillSingle(this,'s1-cycle')">1 semana</div>
+            <div class="pill selected" data-val="1_month" onclick="togglePillSingle(this,'s1-cycle')">1 mes</div>
+            <div class="pill" data-val="3_months" onclick="togglePillSingle(this,'s1-cycle')">3 meses</div>
+            <div class="pill" data-val="6_months+" onclick="togglePillSingle(this,'s1-cycle')">6 meses+</div>
+          </div>
+          <div class="form-grid" style="margin-top:22px">
+            <div class="form-group">
+              <label>Precio promedio de venta</label>
+              <input id="s1-avg-price" type="text" placeholder="0.00">
+            </div>
+            <div class="form-group">
+              <label>Moneda</label>
+              <select id="s1-currency">
+                <option value="USD">USD — Dólar</option>
+                <option value="EUR">EUR — Euro</option>
+                <option value="COP">COP — Peso colombiano</option>
+                <option value="MXN">MXN — Peso mexicano</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Idioma del agente</label>
+              <select id="s1-language">
+                <option value="es">Español</option>
+                <option value="en">English</option>
+                <option value="both">Bilingüe (detecta automáticamente)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Industria <span class="hint">de la marca</span></label>
+              <div class="readonly-field" id="s1-industry-ro">—</div>
+            </div>
+          </div>
+        </div>
+        <div class="wizard-card-footer">
+          <span style="color:var(--muted);font-size:13px">Paso 1 de 5</span>
+          <button class="btn btn-primary" onclick="nextStep(1)">Siguiente →</button>
+        </div>
+      </div>
+
+      <!-- Step 2: ICP -->
+      <div class="wizard-card" id="step-2" style="display:none">
+        <div class="wizard-card-header">
+          <h2>Paso 2 — Perfil del Cliente Ideal (ICP)</h2>
+          <p>El agente usa este perfil para buscar, calificar y priorizar prospectos</p>
+        </div>
+        <div class="wizard-card-body">
+          <div class="form-grid">
+            <div class="form-group full">
+              <label>Industrias objetivo</label>
+              <div class="tag-input-wrap" id="industries-wrap" onclick="focusTagInput('industries-input')">
+                <input id="industries-input" type="text" placeholder="Escribe y presiona Enter..."
+                  onkeydown="addTag(event,'industries-wrap')">
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Tamaños de empresa</label>
+              <div class="pill-group" id="s2-sizes">
+                <div class="pill" data-val="1-10" onclick="togglePill(this,'s2-sizes')">1-10</div>
+                <div class="pill" data-val="11-50" onclick="togglePill(this,'s2-sizes')">11-50</div>
+                <div class="pill selected" data-val="51-200" onclick="togglePill(this,'s2-sizes')">51-200</div>
+                <div class="pill" data-val="201-1000" onclick="togglePill(this,'s2-sizes')">201-1k</div>
+                <div class="pill" data-val="1000+" onclick="togglePill(this,'s2-sizes')">1000+</div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Geografía objetivo <span class="hint">de la marca</span></label>
+              <input id="s2-geo" type="text" placeholder="Ej: Estados Unidos, Florida">
+            </div>
+            <div class="form-group full">
+              <label>Cargos de toma de decisión</label>
+              <div class="tag-input-wrap" id="titles-wrap" onclick="focusTagInput('titles-input')">
+                <input id="titles-input" type="text" placeholder="Ej: CEO, Director de Marketing..."
+                  onkeydown="addTag(event,'titles-wrap')">
+              </div>
+            </div>
+            <div class="form-group full">
+              <label>Problema principal que resuelves</label>
+              <textarea id="s2-pain" rows="2" placeholder="Qué dolor específico soluciona tu producto..."></textarea>
+            </div>
+            <div class="form-group">
+              <label>Presupuesto mensual típico del cliente</label>
+              <select id="s2-budget">
+                <option value="<$500">Menos de $500/mes</option>
+                <option value="$500-$2000">$500 - $2,000/mes</option>
+                <option value="$2000-$5000" selected>$2,000 - $5,000/mes</option>
+                <option value="$5000-$20000">$5,000 - $20,000/mes</option>
+                <option value="$20000+">Más de $20,000/mes</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Score mínimo para contactar <span class="hint">(0-10)</span></label>
+              <input id="s2-min-score" type="number" min="0" max="10" value="6">
+            </div>
+          </div>
+        </div>
+        <div class="wizard-card-footer">
+          <button class="btn btn-secondary" onclick="prevStep(2)">← Anterior</button>
+          <button class="btn btn-primary" onclick="nextStep(2)">Siguiente →</button>
+        </div>
+      </div>
+
+      <!-- Step 3: Catalog -->
+      <div class="wizard-card" id="step-3" style="display:none">
+        <div class="wizard-card-header">
+          <h2>Paso 3 — Catálogo de Productos / Servicios</h2>
+          <p>El agente usará este catálogo para responder preguntas de precio y generar cotizaciones PDF</p>
+        </div>
+        <div class="wizard-card-body">
+          <div id="catalog-items"></div>
+          <button class="btn btn-secondary btn-sm" onclick="addCatalogItem()">+ Agregar ítem</button>
+        </div>
+        <div class="wizard-card-footer">
+          <button class="btn btn-secondary" onclick="prevStep(3)">← Anterior</button>
+          <button class="btn btn-primary" onclick="nextStep(3)">Siguiente →</button>
+        </div>
+      </div>
+
+      <!-- Step 4: Pipeline -->
+      <div class="wizard-card" id="step-4" style="display:none">
+        <div class="wizard-card-header">
+          <h2>Paso 4 — Pipeline y Escalamiento</h2>
+          <p>Define cómo avanza un prospecto y cuándo el agente llama al equipo</p>
+        </div>
+        <div class="wizard-card-body">
+          <div class="section-title">Etapas del pipeline</div>
+          <div class="stage-list">
+            <div class="stage-badge s0">Nuevo</div>
+            <div class="stage-badge s1">Contactado</div>
+            <div class="stage-badge s2">Interesado</div>
+            <div class="stage-badge s3">Propuesta</div>
+            <div class="stage-badge s4">Negociación</div>
+            <div class="stage-badge s5">Cerrado ✓</div>
+          </div>
+          <p style="color:var(--muted);font-size:12px;margin-top:6px;margin-bottom:4px">
+            El agente avanza prospectos automáticamente según el sentimiento de cada respuesta.
+          </p>
+          <div class="form-grid" style="margin-top:18px">
+            <div class="form-group">
+              <label>Criterios de calificación</label>
+              <textarea id="s4-qualify" rows="3" placeholder="Qué hace a un lead ideal: presupuesto, rol de decisión, problema urgente..."></textarea>
+            </div>
+            <div class="form-group">
+              <label>Criterios de descalificación</label>
+              <textarea id="s4-disqualify" rows="3" placeholder="Qué descarta a un lead: empresa muy pequeña, sin presupuesto..."></textarea>
+            </div>
+            <div class="form-group">
+              <label>Umbral de escalamiento al equipo</label>
+              <select id="s4-threshold">
+                <option value="1">Solo frustración extrema (sentimiento 1/5)</option>
+                <option value="2" selected>Sentimiento negativo (≤ 2/5)</option>
+                <option value="3">Cualquier señal negativa (≤ 3/5)</option>
+                <option value="always">Siempre escalar (modo manual)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Máximo de follow-ups automáticos</label>
+              <select id="s4-followups">
+                <option value="1">1 mensaje</option>
+                <option value="2">2 mensajes</option>
+                <option value="3" selected>3 mensajes</option>
+                <option value="5">5 mensajes</option>
+                <option value="0">Sin límite</option>
+              </select>
+            </div>
+            <div class="form-group full">
+              <label>Link de Calendly para demos <span class="hint">opcional</span></label>
+              <input id="s4-calendly" type="url" placeholder="https://calendly.com/tu-usuario/demo">
+            </div>
+          </div>
+        </div>
+        <div class="wizard-card-footer">
+          <button class="btn btn-secondary" onclick="prevStep(4)">← Anterior</button>
+          <button class="btn btn-primary" onclick="nextStep(4)">Siguiente →</button>
+        </div>
+      </div>
+
+      <!-- Step 5: Voice -->
+      <div class="wizard-card" id="step-5" style="display:none">
+        <div class="wizard-card-header">
+          <h2>Paso 5 — Voz del Agente</h2>
+          <p>Cómo habla el agente en nombre de la marca — pre-cargado desde el perfil de marca</p>
+        </div>
+        <div class="wizard-card-body">
+          <div class="form-grid">
+            <div class="form-group full">
+              <label>Tono de comunicación</label>
+              <div class="pill-group" id="s5-tone">
+                <div class="pill" data-val="profesional" onclick="togglePillSingle(this,'s5-tone')">Profesional</div>
+                <div class="pill selected" data-val="cercano" onclick="togglePillSingle(this,'s5-tone')">Cercano y amable</div>
+                <div class="pill" data-val="consultor" onclick="togglePillSingle(this,'s5-tone')">Consultor experto</div>
+                <div class="pill" data-val="startup" onclick="togglePillSingle(this,'s5-tone')">Dinámico / startup</div>
+                <div class="pill" data-val="lujo" onclick="togglePillSingle(this,'s5-tone')">Premium / lujo</div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Descripción de la marca <span class="hint">heredada</span></label>
+              <textarea id="s5-description" rows="3"></textarea>
+            </div>
+            <div class="form-group">
+              <label>Misión / propuesta de valor <span class="hint">heredada</span></label>
+              <textarea id="s5-mission" rows="3"></textarea>
+            </div>
+            <div class="form-group full">
+              <label>Mensajes clave que el agente transmite</label>
+              <div class="tag-input-wrap" id="keymsg-wrap" onclick="focusTagInput('keymsg-input')">
+                <input id="keymsg-input" type="text" placeholder="Ej: Calidad garantizada, Soporte 24/7..."
+                  onkeydown="addTag(event,'keymsg-wrap')">
+              </div>
+            </div>
+            <div class="form-group full">
+              <label>Frases prohibidas</label>
+              <div class="tag-input-wrap" id="forbidden-wrap" onclick="focusTagInput('forbidden-input')">
+                <input id="forbidden-input" type="text" placeholder="Ej: No sé, Imposible..."
+                  onkeydown="addTag(event,'forbidden-wrap')">
+              </div>
+            </div>
+            <div class="form-group full">
+              <label>Instrucciones adicionales para el agente</label>
+              <textarea id="s5-extra" rows="3" placeholder="Ej: Siempre menciona el período de prueba gratuito..."></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="wizard-card-footer">
+          <button class="btn btn-secondary" onclick="prevStep(5)">← Anterior</button>
+          <button class="btn btn-success" onclick="saveConfig()">✓ Guardar configuración del agente</button>
+        </div>
+      </div>
+
+      <!-- Report section -->
+      <div id="report-section" style="display:none">
+        <div class="report-card">
+          <h3>📊 Reporte ejecutivo</h3>
+          <div id="report-content"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Leads modal -->
+<div class="modal-bg" id="leads-modal">
+  <div class="modal">
+    <h3>⚡ Generar leads con IA</h3>
+    <div class="form-group" style="margin-bottom:14px">
+      <label>Contexto adicional <span class="hint">opcional</span></label>
+      <textarea id="leads-hint" rows="2" placeholder="Ej: Enfócate en restaurantes en Miami..."></textarea>
+    </div>
+    <div class="form-group" style="margin-bottom:20px">
+      <label>Cantidad</label>
+      <select id="leads-count">
+        <option value="3">3 leads</option>
+        <option value="5" selected>5 leads</option>
+        <option value="10">10 leads</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn btn-secondary" onclick="closeLeadsModal()">Cancelar</button>
+      <button class="btn btn-primary" id="gen-leads-btn" onclick="runGenerateLeads()">⚡ Generar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+let currentBrandId = null;
+let brandConfig = {};
+let salesConfig = {};
+let tagData = {'industries-wrap':[],'titles-wrap':[],'keymsg-wrap':[],'forbidden-wrap':[]};
+let catalogItems = [];
+
+async function init() { await loadBrands(); }
+
+async function loadBrands() {
+  const r = await fetch('/api/brands');
+  const brands = await r.json();
+  const list = document.getElementById('brand-list');
+  if (!brands.length) {
+    list.innerHTML = '<div style="padding:16px;color:rgba(255,255,255,.35);font-size:13px">Sin marcas configuradas.</div>';
+    return;
+  }
+  list.innerHTML = brands.map(b => {
+    const initials = b.name.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+    return `<div class="brand-item" data-id="${b.id}" onclick="selectBrand('${b.id}')">
+      <div class="brand-dot" style="background:${b.color||'#635BFF'}">${initials}</div>
+      <div class="brand-item-info">
+        <div class="bname">${b.name}</div>
+        <div class="btag">${b.tagline||''}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function selectBrand(id) {
+  currentBrandId = id;
+  document.querySelectorAll('.brand-item').forEach(el =>
+    el.classList.toggle('active', el.dataset.id === id));
+
+  const [brandRes, salesRes] = await Promise.all([
+    fetch('/api/brands/' + id),
+    fetch('/api/sales/config/' + id),
+  ]);
+  const brandData = await brandRes.json();
+  brandConfig = brandData.config || {};
+  salesConfig = salesRes.ok ? await salesRes.json() : {};
+
+  document.getElementById('placeholder').style.display = 'none';
+  document.getElementById('brand-content').style.display = 'block';
+
+  renderBrandCard();
+  populateWizard();
+  loadStats();
+  goStep(1);
+}
+
+function renderBrandCard() {
+  const b = brandConfig;
+  const color = b.color || '#635BFF';
+
+  document.getElementById('brand-info-card').style.borderLeftColor = color;
+
+  const logoEl = document.getElementById('brand-logo-el');
+  logoEl.style.background = color;
+  if (b.logo_url) {
+    logoEl.innerHTML = `<img src="${b.logo_url}" alt="${b.name}" style="width:100%;height:100%;object-fit:cover">`;
+  } else {
+    logoEl.textContent = b.name.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+  }
+
+  document.getElementById('bc-name').textContent = b.name || '—';
+  document.getElementById('bc-tagline').textContent = b.tagline || '';
+  document.getElementById('bc-industry').textContent = b.industry || '—';
+  document.getElementById('bc-geo').textContent = b.geography || '—';
+  const webEl = document.getElementById('bc-web');
+  webEl.href = b.website_url || '#';
+  webEl.textContent = '🔗 ' + (b.website_url ? b.website_url.replace(/^https?:\/\//, '') : 'Sin sitio web');
+
+  document.getElementById('main-title').textContent = 'Agente de ventas — ' + b.name;
+  document.getElementById('main-sub').textContent = b.tagline || ('Agente 24/7 para ' + b.name);
+
+  const hasSales = Object.keys(salesConfig).length > 0;
+  const badge = document.getElementById('sales-status-badge');
+  badge.style.background = hasSales ? '#dcfce7' : '#fee2e2';
+  badge.style.color = hasSales ? '#166534' : '#991b1b';
+  badge.textContent = hasSales ? '● Agente activo' : '○ Sin configurar';
+}
+
+function populateWizard() {
+  const b = brandConfig;
+  const sc = salesConfig;
+  const biz = sc.business || {};
+  const icp = sc.icp || {};
+  const pipeline = sc.pipeline || {};
+  const voice = sc.voice || {};
+
+  // Step 1
+  document.getElementById('s1-brand-name').textContent = b.name || 'esta marca';
+  document.getElementById('s1-industry-ro').textContent = b.industry || '—';
+  if (biz.model) setPillSingle('s1-model', biz.model);
+  if (biz.types) biz.types.forEach(v => setPill('s1-type', v));
+  if (biz.cycle) setPillSingle('s1-cycle', biz.cycle);
+  setVal('s1-avg-price', biz.avg_price);
+  setVal('s1-currency', biz.currency);
+  setVal('s1-language', biz.language || sc.language || 'es');
+
+  // Step 2 — pre-fill geo from brand
+  setVal('s2-geo', icp.geography || b.geography || '');
+  setVal('s2-pain', icp.main_pain || '');
+  setVal('s2-budget', icp.budget_range || '$2000-$5000');
+  setVal('s2-min-score', icp.min_score ?? 6);
+  if (icp.company_sizes) icp.company_sizes.forEach(v => setPill('s2-sizes', v));
+  clearTags('industries-wrap');
+  clearTags('titles-wrap');
+  if (icp.target_industries?.length) setTags('industries-wrap', icp.target_industries);
+  if (icp.decision_maker_titles?.length) setTags('titles-wrap', icp.decision_maker_titles);
+
+  // Step 3
+  catalogItems = [];
+  document.getElementById('catalog-items').innerHTML = '';
+  if (sc.catalog?.length) sc.catalog.forEach(item => addCatalogItem(item));
+
+  // Step 4
+  setVal('s4-qualify', pipeline.qualify_criteria || '');
+  setVal('s4-disqualify', pipeline.disqualify_criteria || '');
+  setVal('s4-threshold', String(pipeline.escalation_threshold ?? '2'));
+  setVal('s4-followups', String(pipeline.max_followups ?? '3'));
+  setVal('s4-calendly', sc.calendly_link || '');
+
+  // Step 5 — pre-fill from brand voice + values
+  const bv = b.voice || {};
+  const toneRaw = voice.tone || bv.tone || bv.style || '';
+  const mapped = mapTone(toneRaw);
+  if (mapped) setPillSingle('s5-tone', mapped); else setPillSingle('s5-tone', 'cercano');
+  setVal('s5-description', b.description || '');
+  setVal('s5-mission', b.mission || '');
+  clearTags('keymsg-wrap');
+  clearTags('forbidden-wrap');
+  const keyMsgs = voice.key_messages?.length ? voice.key_messages : (b.values||[]).slice(0,6);
+  if (keyMsgs.length) setTags('keymsg-wrap', keyMsgs);
+  if (voice.forbidden_phrases?.length) setTags('forbidden-wrap', voice.forbidden_phrases);
+  setVal('s5-extra', voice.extra_instructions || '');
+}
+
+function mapTone(t) {
+  const tl = (t||'').toLowerCase();
+  if (tl.includes('lujo')||tl.includes('premium')||tl.includes('luxury')) return 'lujo';
+  if (tl.includes('startup')||tl.includes('dinámico')||tl.includes('energético')) return 'startup';
+  if (tl.includes('consultor')||tl.includes('experto')) return 'consultor';
+  if (tl.includes('profesional')||tl.includes('formal')) return 'profesional';
+  if (tl.includes('cercano')||tl.includes('cálido')||tl.includes('amable')||tl.includes('warm')) return 'cercano';
+  return '';
+}
+
+async function loadStats() {
+  try {
+    const r = await fetch('/api/sales/stats?brand=' + currentBrandId);
+    const s = await r.json();
+    document.getElementById('k-total').textContent = s.total || 0;
+    document.getElementById('k-score').textContent = (s.avg_score||0).toFixed(1) + '/10';
+    document.getElementById('k-closed').textContent = s.closed_this_month || 0;
+    document.getElementById('k-esc').textContent = s.escalations_pending || 0;
+  } catch(e) {}
+}
+
+// ── Wizard nav ────────────────────────────────────────────────────────────────
+let currentStep = 1;
+function goStep(n) {
+  for (let i=1;i<=5;i++) {
+    const el = document.getElementById('step-'+i);
+    if (el) el.style.display = i===n ? 'block' : 'none';
+  }
+  currentStep = n;
+  document.querySelectorAll('.step-dot').forEach(d => {
+    const sn = parseInt(d.dataset.step);
+    d.className = 'step-dot'+(sn===n?' active':sn<n?' done':'');
+  });
+  window.scrollTo({top:280,behavior:'smooth'});
+}
+function nextStep(n){goStep(n+1);}
+function prevStep(n){goStep(n-1);}
+
+// ── Pills ─────────────────────────────────────────────────────────────────────
+function togglePill(el,g){el.classList.toggle('selected');}
+function togglePillSingle(el,g){
+  document.querySelectorAll('#'+g+' .pill').forEach(p=>p.classList.remove('selected'));
+  el.classList.add('selected');
+}
+function setPill(g,val){
+  document.querySelectorAll('#'+g+' .pill').forEach(p=>{if(p.dataset.val===val)p.classList.add('selected');});
+}
+function setPillSingle(g,val){
+  document.querySelectorAll('#'+g+' .pill').forEach(p=>p.classList.toggle('selected',p.dataset.val===val));
+}
+function getPillValues(g){return[...document.querySelectorAll('#'+g+' .pill.selected')].map(p=>p.dataset.val);}
+function getPillSingle(g){const el=document.querySelector('#'+g+' .pill.selected');return el?el.dataset.val:'';}
+
+// ── Tags ──────────────────────────────────────────────────────────────────────
+function focusTagInput(id){document.getElementById(id).focus();}
+function addTag(event,wrapId){
+  if(event.key!=='Enter'&&event.key!==',')return;
+  event.preventDefault();
+  const input=event.target;
+  const val=input.value.trim().replace(/,$/,'');
+  if(!val)return;
+  if(!tagData[wrapId])tagData[wrapId]=[];
+  if(tagData[wrapId].includes(val)){input.value='';return;}
+  tagData[wrapId].push(val);
+  _renderTag(val,wrapId,input);
+  input.value='';
+}
+function _renderTag(val,wrapId,inputEl){
+  const tag=document.createElement('div');
+  tag.className='tag';
+  tag.innerHTML=val+'<span class="tag-remove" onclick="removeTag(this,\''+wrapId+'\',\''+val.replace(/'/g,"\\'")+'\')" >×</span>';
+  document.getElementById(wrapId).insertBefore(tag,inputEl);
+}
+function removeTag(el,wrapId,val){
+  el.parentElement.remove();
+  tagData[wrapId]=(tagData[wrapId]||[]).filter(v=>v!==val);
+}
+function clearTags(wrapId){
+  tagData[wrapId]=[];
+  const wrap=document.getElementById(wrapId);
+  if(wrap)[...wrap.querySelectorAll('.tag')].forEach(t=>t.remove());
+}
+function setTags(wrapId,vals){
+  if(!Array.isArray(vals))return;
+  tagData[wrapId]=[];
+  const wrap=document.getElementById(wrapId);
+  const input=wrap.querySelector('input');
+  vals.forEach(v=>{tagData[wrapId].push(v);_renderTag(v,wrapId,input);});
+}
+
+// ── Catalog ───────────────────────────────────────────────────────────────────
+function addCatalogItem(item){
+  const idx=catalogItems.length;
+  catalogItems.push(item||{});
+  const d=item||{};
+  const div=document.createElement('div');
+  div.className='catalog-item';div.id='cat-item-'+idx;
+  div.innerHTML='<div class="catalog-item-header"><span>Ítem #'+(idx+1)+'</span>'+
+    '<button class="btn-remove" onclick="removeCatalogItem('+idx+')">×</button></div>'+
+    '<div class="form-grid">'+
+    '<div class="form-group"><label>Nombre</label><input type="text" id="cat-name-'+idx+'" value="'+(d.name||'')+'" placeholder="Ej: Plan Starter"></div>'+
+    '<div class="form-group"><label>Precio $</label><input type="text" id="cat-price-'+idx+'" value="'+(d.price||'')+'" placeholder="0.00"></div>'+
+    '<div class="form-group"><label>Unidad</label><input type="text" id="cat-unit-'+idx+'" value="'+(d.unit||'')+'" placeholder="/mes, /kg, unidad"></div>'+
+    '<div class="form-group"><label>Stock</label><input type="text" id="cat-stock-'+idx+'" value="'+(d.stock||'')+'" placeholder="Ilimitado"></div>'+
+    '<div class="form-group full"><label>Descripción</label><textarea id="cat-desc-'+idx+'" rows="2">'+(d.description||'')+'</textarea></div>'+
+    '</div>';
+  document.getElementById('catalog-items').appendChild(div);
+}
+function removeCatalogItem(idx){document.getElementById('cat-item-'+idx)?.remove();catalogItems[idx]=null;}
+function getCatalog(){
+  return catalogItems.map((_,i)=>{
+    const nameEl=document.getElementById('cat-name-'+i);
+    if(!nameEl)return null;
+    return{name:nameEl.value,
+      description:document.getElementById('cat-desc-'+i)?.value||'',
+      price:document.getElementById('cat-price-'+i)?.value||'',
+      unit:document.getElementById('cat-unit-'+i)?.value||'',
+      stock:document.getElementById('cat-stock-'+i)?.value||''};
+  }).filter(Boolean).filter(i=>i.name);
+}
+
+// ── Save ──────────────────────────────────────────────────────────────────────
+async function saveConfig(){
+  const b=brandConfig;
+  const config={
+    language:document.getElementById('s1-language').value,
+    business:{
+      model:getPillSingle('s1-model'),
+      types:getPillValues('s1-type'),
+      cycle:getPillSingle('s1-cycle'),
+      avg_price:document.getElementById('s1-avg-price').value,
+      currency:document.getElementById('s1-currency').value,
+      language:document.getElementById('s1-language').value,
+    },
+    icp:{
+      target_industries:tagData['industries-wrap']||[],
+      company_sizes:getPillValues('s2-sizes'),
+      geography:document.getElementById('s2-geo').value||b.geography||'',
+      decision_maker_titles:tagData['titles-wrap']||[],
+      main_pain:document.getElementById('s2-pain').value,
+      budget_range:document.getElementById('s2-budget').value,
+      min_score:parseInt(document.getElementById('s2-min-score').value)||6,
+    },
+    catalog:getCatalog(),
+    pipeline:{
+      stages:['nuevo','contactado','interesado','propuesta','negociacion','cerrado'],
+      qualify_criteria:document.getElementById('s4-qualify').value,
+      disqualify_criteria:document.getElementById('s4-disqualify').value,
+      escalation_threshold:document.getElementById('s4-threshold').value,
+      max_followups:parseInt(document.getElementById('s4-followups').value)||3,
+    },
+    calendly_link:document.getElementById('s4-calendly').value,
+    voice:{
+      tone:getPillSingle('s5-tone'),
+      description:document.getElementById('s5-description').value,
+      mission:document.getElementById('s5-mission').value,
+      key_messages:tagData['keymsg-wrap']||[],
+      forbidden_phrases:tagData['forbidden-wrap']||[],
+      extra_instructions:document.getElementById('s5-extra').value,
+    },
+  };
+  try{
+    const r=await fetch('/api/sales/config/'+currentBrandId,{
+      method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(config)});
+    const data=await r.json();
+    if(data.success){
+      salesConfig=config;
+      renderBrandCard();
+      toast('✓ Agente de '+(brandConfig.name||'la marca')+' configurado y listo.');
+    }else{toast('Error: '+(data.error||'Desconocido'),true);}
+  }catch(e){toast('Error: '+e.message,true);}
+}
+
+// ── Report ────────────────────────────────────────────────────────────────────
+async function generateReport(){
+  if(!currentBrandId)return;
+  toast('Generando reporte...');
+  try{
+    const r=await fetch('/api/sales/report?brand='+currentBrandId,{method:'POST'});
+    const data=await r.json();
+    if(data.report){
+      document.getElementById('report-section').style.display='block';
+      const rpt=data.report;
+      const recs=(rpt.recommendations||[]).map(r=>'<li>'+r+'</li>').join('');
+      document.getElementById('report-content').innerHTML=
+        '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">'+
+        mini(rpt.leads_generated,'Leads hoy')+mini(rpt.contacts_made,'Contactos')+
+        mini((rpt.avg_sentiment_score||0)+'/5','Sentimiento')+'</div>'+
+        (recs?'<div style="font-weight:700;color:var(--navy);margin-bottom:8px;font-size:13px">Recomendaciones</div><ul class="rec-list">'+recs+'</ul>':'');
+      document.getElementById('report-section').scrollIntoView({behavior:'smooth'});
+      toast('✓ Reporte generado');
+    }else{toast('Error: '+(data.error||'sin datos'),true);}
+  }catch(e){toast('Error: '+e.message,true);}
+}
+function mini(val,lbl){
+  return'<div style="background:#f8f9fd;padding:12px;border-radius:8px">'+
+    '<div style="font-size:22px;font-weight:800;color:var(--navy)">'+val+'</div>'+
+    '<div style="font-size:11px;color:var(--muted)">'+lbl+'</div></div>';
+}
+
+// ── Generate leads ────────────────────────────────────────────────────────────
+function openLeadsModal(){document.getElementById('leads-modal').classList.add('open');}
+function closeLeadsModal(){document.getElementById('leads-modal').classList.remove('open');}
+async function runGenerateLeads(){
+  const btn=document.getElementById('gen-leads-btn');
+  btn.disabled=true;btn.textContent='Generando...';
+  try{
+    const r=await fetch('/api/sales/generate-leads?brand='+currentBrandId,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({count:parseInt(document.getElementById('leads-count').value),
+        hint:document.getElementById('leads-hint').value})});
+    const data=await r.json();
+    closeLeadsModal();
+    if(data.success){toast('✓ '+data.count+' leads generados. Ve al portal del equipo.');loadStats();}
+    else{toast('Error: '+(data.error||'desconocido'),true);}
+  }catch(e){toast('Error: '+e.message,true);}
+  finally{btn.disabled=false;btn.textContent='⚡ Generar';}
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function setVal(id,val){const el=document.getElementById(id);if(el&&val!=null)el.value=val;}
+function toast(msg,isError){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.style.background=isError?'#ef4444':'var(--navy)';
+  t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3500);
+}
+document.getElementById('leads-modal').addEventListener('click',function(e){
+  if(e.target===this)closeLeadsModal();
+});
+
+init();
+</script>
+</body>
+</html>
