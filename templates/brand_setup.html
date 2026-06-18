@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Voxify — Configurar Marca</title>
+<style>
+:root{
+  --navy:#0A2540;--purple:#635BFF;--aqua:#20C6B7;
+  --navy-light:#0e3058;--purple-light:#ece9ff;--aqua-light:#e0faf8;
+  --bg:#f0f2f8;--card:#fff;--border:#e2e6ef;
+  --text:#1a2340;--muted:#6b7a99;--success:#22c55e;
+  --warning:#f59e0b;--danger:#ef4444;
+  --radius:12px;--shadow:0 2px 16px rgba(10,37,64,.10);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  background:var(--bg);color:var(--text);min-height:100vh;}
+
+/* NAV */
+.topnav{background:var(--navy);height:60px;padding:0 28px;display:flex;
+  align-items:center;justify-content:space-between;}
+.logo{color:#fff;font-weight:900;font-size:20px;letter-spacing:-1px;}
+.logo span{color:var(--aqua);}
+.topnav nav a{color:rgba(255,255,255,.7);text-decoration:none;font-size:14px;margin-left:20px;}
+.topnav nav a:hover{color:#fff;}
+
+/* LAYOUT */
+.layout{display:grid;grid-template-columns:1fr 420px;min-height:calc(100vh - 60px);gap:0;}
+
+/* LEFT: FORM */
+.form-panel{padding:32px;overflow-y:auto;background:var(--bg);}
+.form-panel-header{margin-bottom:28px;}
+.form-panel-header h1{font-size:24px;font-weight:900;color:var(--navy);}
+.form-panel-header p{color:var(--muted);font-size:14px;margin-top:4px;}
+
+/* RIGHT: RESEARCH */
+.research-panel{background:var(--navy);overflow-y:auto;position:sticky;top:0;}
+.research-top{padding:24px 28px;border-bottom:1px solid rgba(255,255,255,.1);}
+.research-top h2{color:#fff;font-size:17px;font-weight:800;}
+.research-top p{color:rgba(255,255,255,.55);font-size:13px;margin-top:4px;}
+.research-body{padding:20px 28px;}
+
+/* CARD */
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);
+  margin-bottom:20px;overflow:hidden;}
+.card-header{padding:16px 20px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:10px;}
+.card-header h3{font-size:14px;font-weight:800;color:var(--navy);}
+.card-body{padding:20px;}
+
+/* FORM */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.form-group{display:flex;flex-direction:column;gap:6px;}
+.form-group.full{grid-column:1/-1;}
+label{font-size:12px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.5px;}
+input,select,textarea{padding:10px 13px;border:1.5px solid var(--border);border-radius:8px;
+  font-size:14px;color:var(--text);background:#fff;transition:border .2s;
+  font-family:inherit;width:100%;}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--purple);
+  box-shadow:0 0 0 3px var(--purple-light);}
+textarea{resize:vertical;}
+
+/* TAG INPUT */
+.tag-wrap{border:1.5px solid var(--border);border-radius:8px;padding:7px;
+  display:flex;flex-wrap:wrap;gap:5px;background:#fff;min-height:44px;cursor:text;}
+.tag-wrap:focus-within{border-color:var(--purple);box-shadow:0 0 0 3px var(--purple-light);}
+.tag{background:var(--purple-light);color:var(--purple);border-radius:20px;
+  padding:3px 10px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:4px;}
+.tag-x{cursor:pointer;opacity:.6;font-size:13px;}
+.tag-x:hover{opacity:1;}
+.tag-wrap input{border:none;outline:none;font-size:13px;flex:1;min-width:80px;padding:2px 4px;}
+
+/* COLOR PICKER */
+.color-row{display:flex;gap:8px;align-items:center;}
+.color-swatch{width:36px;height:36px;border-radius:8px;border:2px solid var(--border);
+  cursor:pointer;transition:transform .15s;}
+.color-swatch.active{border-color:var(--navy);transform:scale(1.15);}
+.color-input{width:44px;height:36px;border-radius:8px;border:1.5px solid var(--border);
+  padding:2px;cursor:pointer;}
+
+/* SECTION TITLE */
+.section-label{font-size:11px;font-weight:700;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.7px;margin:4px 0 10px;
+  padding-bottom:6px;border-bottom:1px solid var(--border);}
+
+/* AUTOGENERATE BUTTON */
+.autogen-btn{width:100%;padding:14px;border-radius:10px;
+  background:linear-gradient(135deg,var(--purple),#4f49cc);color:#fff;
+  font-size:15px;font-weight:800;border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  transition:all .25s;margin-bottom:16px;}
+.autogen-btn:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(99,91,255,.4);}
+.autogen-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none;}
+.autogen-btn .spinner{width:18px;height:18px;border:2.5px solid rgba(255,255,255,.3);
+  border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* RESEARCH RESULT SECTIONS */
+.r-section{margin-bottom:20px;}
+.r-section-title{color:rgba(255,255,255,.45);font-size:10px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;}
+.r-card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
+  border-radius:10px;padding:14px;margin-bottom:8px;}
+.r-card-title{color:#fff;font-weight:700;font-size:13px;margin-bottom:4px;}
+.r-card-sub{color:rgba(255,255,255,.6);font-size:12px;line-height:1.5;}
+.r-tag{display:inline-block;background:rgba(255,255,255,.1);color:rgba(255,255,255,.8);
+  border-radius:20px;padding:3px 10px;font-size:11px;font-weight:600;margin:2px;}
+.r-accept-btn{background:var(--aqua);color:var(--navy);border:none;border-radius:6px;
+  padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;margin-top:8px;
+  transition:opacity .2s;}
+.r-accept-btn:hover{opacity:.85;}
+.r-insight{display:flex;gap:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.07);}
+.r-insight:last-child{border-bottom:none;}
+.r-insight-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;
+  white-space:nowrap;flex-shrink:0;}
+.badge-trend{background:#dbeafe;color:#1e40af;}
+.badge-opp{background:#dcfce7;color:#166534;}
+.badge-threat{background:#fee2e2;color:#991b1b;}
+.r-insight-text{color:rgba(255,255,255,.7);font-size:12px;}
+
+/* RESEARCH EMPTY */
+.research-empty{text-align:center;padding:40px 20px;color:rgba(255,255,255,.4);}
+.research-empty .icon{font-size:42px;margin-bottom:12px;}
+.research-empty p{font-size:13px;line-height:1.6;}
+
+/* SUMMARY BOX */
+.summary-box{background:rgba(32,198,183,.1);border:1px solid rgba(32,198,183,.3);
+  border-radius:10px;padding:14px;margin-bottom:16px;}
+.summary-box p{color:rgba(255,255,255,.8);font-size:13px;line-height:1.6;}
+
+/* PROGRESS */
+.progress-wrap{background:rgba(255,255,255,.08);border-radius:30px;height:4px;
+  overflow:hidden;margin-bottom:16px;}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--purple),var(--aqua));
+  border-radius:30px;transition:width .4s;}
+.progress-label{color:rgba(255,255,255,.55);font-size:12px;margin-bottom:6px;}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 22px;border-radius:9px;
+  font-size:14px;font-weight:700;cursor:pointer;border:none;transition:all .2s;text-decoration:none;}
+.btn-primary{background:var(--purple);color:#fff;}
+.btn-primary:hover{background:#4f49cc;}
+.btn-secondary{background:#fff;color:var(--navy);border:1.5px solid var(--border);}
+.btn-secondary:hover{border-color:var(--purple);color:var(--purple);}
+.btn-success{background:var(--success);color:#fff;}
+.btn-danger{background:var(--danger);color:#fff;}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+
+/* SAVE BAR */
+.save-bar{position:sticky;bottom:0;background:rgba(255,255,255,.95);
+  backdrop-filter:blur(10px);border-top:1px solid var(--border);
+  padding:14px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px;}
+.save-bar-left{font-size:13px;color:var(--muted);}
+
+/* TOAST */
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+  background:var(--navy);color:#fff;padding:10px 22px;border-radius:30px;
+  font-size:13px;font-weight:600;opacity:0;transition:opacity .3s;z-index:9999;pointer-events:none;}
+#toast.show{opacity:1;}
+
+@media(max-width:900px){
+  .layout{grid-template-columns:1fr;}
+  .research-panel{display:none;}
+}
+</style>
+</head>
+<body>
+
+<nav class="topnav">
+  <div class="logo">Voxify <span>Hub</span></div>
+  <nav>
+    <a href="/">← Inicio</a>
+    <a href="/brands">Marcas</a>
+  </nav>
+</nav>
+
+<div class="layout">
+  <!-- LEFT: Form -->
+  <div class="form-panel">
+    <div class="form-panel-header">
+      <h1 id="page-title">Nueva marca</h1>
+      <p id="page-sub">Completa los datos que conozcas — la IA investigará el resto</p>
+    </div>
+
+    <!-- Identidad -->
+    <div class="card">
+      <div class="card-header">
+        <span style="font-size:20px">🏢</span>
+        <h3>Identidad de la marca</h3>
+      </div>
+      <div class="card-body">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>ID único *</label>
+            <input id="f-id" type="text" placeholder="ej: aroma_beans" oninput="slugify(this)">
+            <span style="font-size:11px;color:var(--muted)">Solo letras, números y guiones bajos</span>
+          </div>
+          <div class="form-group">
+            <label>Nombre de la marca *</label>
+            <input id="f-name" type="text" placeholder="Ej: Aroma Beans">
+          </div>
+          <div class="form-group full">
+            <label>Tagline / Slogan</label>
+            <input id="f-tagline" type="text" placeholder="Ej: El café que te conecta con Colombia">
+          </div>
+          <div class="form-group">
+            <label>Industria</label>
+            <input id="f-industry" type="text" placeholder="Ej: E-commerce, Café de especialidad">
+          </div>
+          <div class="form-group">
+            <label>Geografía / Mercado objetivo</label>
+            <input id="f-geography" type="text" placeholder="Ej: Estados Unidos — Latinos">
+          </div>
+          <div class="form-group">
+            <label>Sitio web</label>
+            <input id="f-website" type="url" placeholder="https://miempresa.com">
+          </div>
+          <div class="form-group">
+            <label>Instagram</label>
+            <input id="f-instagram" type="text" placeholder="@usuario">
+          </div>
+          <div class="form-group full">
+            <label>Descripción del negocio</label>
+            <textarea id="f-description" rows="3" placeholder="Qué hace la empresa, a quién sirve y cuál es su propuesta de valor..."></textarea>
+          </div>
+          <div class="form-group full">
+            <label>Misión</label>
+            <textarea id="f-mission" rows="2" placeholder="Por qué existe esta empresa..."></textarea>
+          </div>
+          <div class="form-group">
+            <label>Color principal</label>
+            <div class="color-row">
+              <div class="color-swatch active" style="background:#635BFF" data-color="#635BFF" onclick="selectColor(this)"></div>
+              <div class="color-swatch" style="background:#20C6B7" data-color="#20C6B7" onclick="selectColor(this)"></div>
+              <div class="color-swatch" style="background:#0A2540" data-color="#0A2540" onclick="selectColor(this)"></div>
+              <div class="color-swatch" style="background:#ef4444" data-color="#ef4444" onclick="selectColor(this)"></div>
+              <div class="color-swatch" style="background:#f59e0b" data-color="#f59e0b" onclick="selectColor(this)"></div>
+              <div class="color-swatch" style="background:#22c55e" data-color="#22c55e" onclick="selectColor(this)"></div>
+              <input id="f-color-custom" type="color" value="#635BFF" class="color-input" oninput="setCustomColor(this.value)">
+            </div>
+            <input id="f-color" type="hidden" value="#635BFF">
+          </div>
+          <div class="form-group">
+            <label>URL del logo</label>
+            <input id="f-logo" type="url" placeholder="https://...png">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Valores y hashtags -->
+    <div class="card">
+      <div class="card-header">
+        <span style="font-size:20px">💎</span>
+        <h3>Valores y posicionamiento</h3>
+      </div>
+      <div class="card-body">
+        <div class="form-grid">
+          <div class="form-group full">
+            <label>Valores de marca</label>
+            <div class="tag-wrap" id="values-wrap" onclick="focusTag('values-input')">
+              <input id="values-input" type="text" placeholder="Escribe un valor y presiona Enter..."
+                onkeydown="addTag(event,'values-wrap')">
+            </div>
+          </div>
+          <div class="form-group full">
+            <label>Posicionamiento</label>
+            <textarea id="f-positioning" rows="2" placeholder="Cómo quieres ser percibido vs la competencia..."></textarea>
+          </div>
+          <div class="form-group full">
+            <label>Hashtags conocidos</label>
+            <div class="tag-wrap" id="hashtags-wrap" onclick="focusTag('hashtags-input')">
+              <input id="hashtags-input" type="text" placeholder="#hashtag Enter..."
+                onkeydown="addTag(event,'hashtags-wrap')">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Audiencia -->
+    <div class="card">
+      <div class="card-header">
+        <span style="font-size:20px">🎯</span>
+        <h3>Audiencia objetivo</h3>
+      </div>
+      <div class="card-body">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Edad del cliente típico</label>
+            <input id="f-age" type="text" placeholder="Ej: 28-45 años">
+          </div>
+          <div class="form-group">
+            <label>Género predominante</label>
+            <select id="f-gender">
+              <option value="">Sin preferencia</option>
+              <option value="femenino">Femenino predominante</option>
+              <option value="masculino">Masculino predominante</option>
+              <option value="mixto">Mixto equitativo</option>
+            </select>
+          </div>
+          <div class="form-group full">
+            <label>Intereses y estilo de vida</label>
+            <textarea id="f-interests" rows="2" placeholder="Qué les gusta, cómo viven, qué los motiva..."></textarea>
+          </div>
+          <div class="form-group full">
+            <label>Dolor / problema principal que resuelves</label>
+            <textarea id="f-pain" rows="2" placeholder="Por qué te necesitan..."></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Voz de marca -->
+    <div class="card">
+      <div class="card-header">
+        <span style="font-size:20px">🎙️</span>
+        <h3>Voz de marca</h3>
+      </div>
+      <div class="card-body">
+        <div class="form-grid">
+          <div class="form-group full">
+            <label>Tono de comunicación</label>
+            <input id="f-tone" type="text" placeholder="Ej: Cálido, experto, inspirador, cercano">
+          </div>
+          <div class="form-group full">
+            <label>Frases que SÍ usamos</label>
+            <div class="tag-wrap" id="do-wrap" onclick="focusTag('do-input')">
+              <input id="do-input" type="text" placeholder="Escribe y presiona Enter..."
+                onkeydown="addTag(event,'do-wrap')">
+            </div>
+          </div>
+          <div class="form-group full">
+            <label>Frases que NUNCA usamos</label>
+            <div class="tag-wrap" id="dont-wrap" onclick="focusTag('dont-input')">
+              <input id="dont-input" type="text" placeholder="Escribe y presiona Enter..."
+                onkeydown="addTag(event,'dont-wrap')">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Save bar -->
+    <div class="save-bar">
+      <div class="save-bar-left" id="save-status">Sin guardar</div>
+      <div style="display:flex;gap:10px">
+        <a href="/" class="btn btn-secondary">Cancelar</a>
+        <button class="btn btn-primary" onclick="saveBrand()">💾 Guardar marca</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Research panel -->
+  <div class="research-panel">
+    <div class="research-top">
+      <h2>🔍 Investigación con IA</h2>
+      <p>Claude investigará tu mercado, competidores y estrategia</p>
+    </div>
+    <div class="research-body">
+      <button class="autogen-btn" id="autogen-btn" onclick="runResearch()">
+        <span id="autogen-icon">⚡</span>
+        <span id="autogen-label">Autogenerar investigación profunda</span>
+      </button>
+
+      <div id="research-empty" class="research-empty">
+        <div class="icon">🔬</div>
+        <p>Ingresa al menos el <strong>nombre</strong> e <strong>industria</strong> de la marca, luego haz clic en "Autogenerar" para obtener:</p>
+        <div style="margin-top:12px;text-align:left">
+          <div style="color:rgba(255,255,255,.55);font-size:12px;padding:4px 0">✓ Análisis de competidores</div>
+          <div style="color:rgba(255,255,255,.55);font-size:12px;padding:4px 0">✓ 30 hashtags categorizados</div>
+          <div style="color:rgba(255,255,255,.55);font-size:12px;padding:4px 0">✓ Ventajas competitivas</div>
+          <div style="color:rgba(255,255,255,.55);font-size:12px;padding:4px 0">✓ Perfil de audiencia refinado</div>
+          <div style="color:rgba(255,255,255,.55);font-size:12px;padding:4px 0">✓ Pilares de contenido</div>
+          <div style="color:rgba(255,255,255,.55);font-size:12px;padding:4px 0">✓ Insights de mercado</div>
+        </div>
+      </div>
+
+      <div id="research-progress" style="display:none">
+        <div class="progress-label" id="progress-label">Analizando el mercado...</div>
+        <div class="progress-wrap">
+          <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+        </div>
+      </div>
+
+      <div id="research-results" style="display:none"></div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const brandId = (() => {
+  const parts = window.location.pathname.split('/');
+  if (parts[1] === 'brand' && parts[2] && parts[2] !== 'new') return parts[2];
+  return null;
+})();
+const isNew = !brandId;
+
+let tagData = {'values-wrap':[],'hashtags-wrap':[],'do-wrap':[],'dont-wrap':[]};
+let selectedColor = '#635BFF';
+let researchData = null;
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+async function init() {
+  document.getElementById('page-title').textContent = isNew ? 'Nueva marca' : 'Editar marca';
+  document.getElementById('page-sub').textContent = isNew
+    ? 'Completa los datos que conozcas — la IA investigará el resto'
+    : 'Edita la configuración de la marca y mejórala con investigación profunda';
+
+  if (!isNew) {
+    document.getElementById('f-id').disabled = true;
+    await loadBrand();
+  }
+}
+
+async function loadBrand() {
+  const r = await fetch('/api/brands/' + brandId);
+  const data = await r.json();
+  const b = data.config || {};
+  populate(b);
+}
+
+function populate(b) {
+  setVal('f-id', b.id);
+  setVal('f-name', b.name);
+  setVal('f-tagline', b.tagline);
+  setVal('f-industry', b.industry);
+  setVal('f-geography', b.geography);
+  setVal('f-website', b.website_url);
+  setVal('f-logo', b.logo_url);
+  setVal('f-description', b.description);
+  setVal('f-mission', b.mission);
+  setVal('f-positioning', b.positioning);
+  setVal('f-tone', b.voice?.tone || (typeof b.voice === 'string' ? b.voice : ''));
+  setVal('f-pain', b.audience?.primary?.pain_points?.join(', ') || '');
+  setVal('f-interests', b.audience?.primary?.psychographics || '');
+
+  const social = b.social_urls || {};
+  setVal('f-instagram', social.instagram || '');
+
+  const age = b.audience?.primary?.demographics || '';
+  if (age) setVal('f-age', age);
+
+  if (b.color) { selectedColor = b.color; applyColor(b.color); }
+
+  if (b.values?.length) setTags('values-wrap', b.values);
+  if (b.hashtags?.length) setTags('hashtags-wrap', b.hashtags.slice(0,10));
+
+  const voice = b.voice || {};
+  if (voice.do?.length) setTags('do-wrap', voice.do);
+  if (voice.dont?.length) setTags('dont-wrap', voice.dont);
+
+  if (b.last_research) {
+    document.getElementById('save-status').textContent =
+      '✓ Investigado el ' + new Date(b.last_research).toLocaleDateString('es-MX');
+  }
+}
+
+// ── Colors ────────────────────────────────────────────────────────────────────
+function selectColor(el) {
+  document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+  selectedColor = el.dataset.color;
+  document.getElementById('f-color').value = selectedColor;
+  document.getElementById('f-color-custom').value = selectedColor;
+}
+function setCustomColor(val) {
+  selectedColor = val;
+  document.getElementById('f-color').value = val;
+  document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+}
+function applyColor(color) {
+  selectedColor = color;
+  document.getElementById('f-color').value = color;
+  document.getElementById('f-color-custom').value = color;
+  let matched = false;
+  document.querySelectorAll('.color-swatch').forEach(s => {
+    s.classList.remove('active');
+    if (s.dataset.color?.toLowerCase() === color.toLowerCase()) {
+      s.classList.add('active'); matched = true;
+    }
+  });
+}
+
+// ── Tags ──────────────────────────────────────────────────────────────────────
+function focusTag(id) { document.getElementById(id)?.focus(); }
+function addTag(e, wrapId) {
+  if (e.key !== 'Enter' && e.key !== ',') return;
+  e.preventDefault();
+  const input = e.target;
+  const val = input.value.trim().replace(/,$/, '');
+  if (!val || (tagData[wrapId] || []).includes(val)) { input.value = ''; return; }
+  if (!tagData[wrapId]) tagData[wrapId] = [];
+  tagData[wrapId].push(val);
+  _renderTag(val, wrapId, input);
+  input.value = '';
+}
+function _renderTag(val, wrapId, inputEl) {
+  const tag = document.createElement('div');
+  tag.className = 'tag';
+  tag.innerHTML = val + '<span class="tag-x" onclick="removeTag(this,\''+wrapId+'\',\''+val.replace(/'/g,"\\'")+'\')" >×</span>';
+  document.getElementById(wrapId).insertBefore(tag, inputEl);
+}
+function removeTag(el, wrapId, val) {
+  el.parentElement.remove();
+  tagData[wrapId] = (tagData[wrapId]||[]).filter(v => v !== val);
+}
+function clearTags(wrapId) {
+  tagData[wrapId] = [];
+  const wrap = document.getElementById(wrapId);
+  if (wrap) [...wrap.querySelectorAll('.tag')].forEach(t => t.remove());
+}
+function setTags(wrapId, vals) {
+  if (!Array.isArray(vals)) return;
+  clearTags(wrapId);
+  const wrap = document.getElementById(wrapId);
+  const input = wrap.querySelector('input');
+  vals.forEach(v => { tagData[wrapId].push(v); _renderTag(v, wrapId, input); });
+}
+function addTagsFromArray(wrapId, vals) {
+  if (!Array.isArray(vals)) return;
+  const wrap = document.getElementById(wrapId);
+  const input = wrap.querySelector('input');
+  vals.forEach(v => {
+    if (!(tagData[wrapId]||[]).includes(v)) {
+      if (!tagData[wrapId]) tagData[wrapId] = [];
+      tagData[wrapId].push(v);
+      _renderTag(v, wrapId, input);
+    }
+  });
+}
+
+// ── Collect form data ─────────────────────────────────────────────────────────
+function collectForm() {
+  return {
+    id:          document.getElementById('f-id').value.trim(),
+    name:        document.getElementById('f-name').value.trim(),
+    tagline:     document.getElementById('f-tagline').value.trim(),
+    industry:    document.getElementById('f-industry').value.trim(),
+    geography:   document.getElementById('f-geography').value.trim(),
+    website_url: document.getElementById('f-website').value.trim(),
+    logo_url:    document.getElementById('f-logo').value.trim(),
+    description: document.getElementById('f-description').value.trim(),
+    mission:     document.getElementById('f-mission').value.trim(),
+    positioning: document.getElementById('f-positioning').value.trim(),
+    color:       selectedColor,
+    values:      tagData['values-wrap'] || [],
+    hashtags:    tagData['hashtags-wrap'] || [],
+    social_urls: { instagram: document.getElementById('f-instagram').value.trim() },
+    audience: {
+      primary: {
+        demographics:  document.getElementById('f-age').value.trim(),
+        psychographics:document.getElementById('f-interests').value.trim(),
+        pain_points:   document.getElementById('f-pain').value.trim()
+                        ? [document.getElementById('f-pain').value.trim()] : [],
+      }
+    },
+    voice: {
+      tone: document.getElementById('f-tone').value.trim(),
+      do:   tagData['do-wrap']   || [],
+      dont: tagData['dont-wrap'] || [],
+    },
+  };
+}
+
+// ── Save brand ────────────────────────────────────────────────────────────────
+async function saveBrand() {
+  const data = collectForm();
+  if (!data.id) { toast('El ID de la marca es requerido', true); return; }
+  if (!data.name) { toast('El nombre de la marca es requerido', true); return; }
+
+  // Preserve existing fields (sales_config, etc.) when editing
+  let merged = data;
+  if (!isNew) {
+    try {
+      const r = await fetch('/api/brands/' + brandId);
+      const existing = await r.json();
+      merged = { ...(existing.config || {}), ...data };
+    } catch(e) {}
+  }
+
+  const r = await fetch('/api/brands', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(merged),
+  });
+  const result = await r.json();
+  if (result.success !== false && !result.error) {
+    document.getElementById('save-status').textContent = '✓ Guardado';
+    toast('✓ Marca guardada correctamente');
+    if (isNew) setTimeout(() => window.location.href = '/', 1200);
+  } else {
+    toast('Error: ' + (result.error || 'desconocido'), true);
+  }
+}
+
+// ── Research ──────────────────────────────────────────────────────────────────
+async function runResearch() {
+  const brand_data = collectForm();
+  if (!brand_data.name && !brand_data.industry) {
+    toast('Ingresa al menos el nombre o la industria de la marca', true);
+    return;
+  }
+
+  const btn = document.getElementById('autogen-btn');
+  const icon = document.getElementById('autogen-icon');
+  const label = document.getElementById('autogen-label');
+  btn.disabled = true;
+  icon.className = 'spinner';
+  label.textContent = 'Investigando mercado...';
+
+  document.getElementById('research-empty').style.display = 'none';
+  document.getElementById('research-results').style.display = 'none';
+  document.getElementById('research-progress').style.display = 'block';
+
+  // Animate progress
+  const steps = [
+    [10, 'Analizando industria y competidores...'],
+    [30, 'Investigando posicionamiento de mercado...'],
+    [55, 'Generando estrategia de hashtags...'],
+    [75, 'Identificando ventajas competitivas...'],
+    [90, 'Elaborando insights y recomendaciones...'],
+  ];
+  let si = 0;
+  const progressInterval = setInterval(() => {
+    if (si < steps.length) {
+      document.getElementById('progress-fill').style.width = steps[si][0] + '%';
+      document.getElementById('progress-label').textContent = steps[si][1];
+      si++;
+    }
+  }, 3000);
+
+  try {
+    const r = await fetch('/api/brands/' + (brandId || 'preview') + '/research', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ brand_data, save: !isNew }),
+    });
+    const data = await r.json();
+    clearInterval(progressInterval);
+    document.getElementById('progress-fill').style.width = '100%';
+
+    if (!data.success) {
+      toast('Error en la investigación: ' + data.error, true);
+      resetBtn();
+      return;
+    }
+
+    researchData = data.research;
+    renderResearch(researchData);
+
+    // Auto-apply hashtags, values, positioning from research
+    applyResearchToForm(researchData);
+
+    document.getElementById('research-progress').style.display = 'none';
+    document.getElementById('research-results').style.display = 'block';
+    toast('✓ Investigación completada — datos aplicados al formulario');
+  } catch(e) {
+    clearInterval(progressInterval);
+    toast('Error: ' + e.message, true);
+  }
+  resetBtn();
+}
+
+function resetBtn() {
+  const btn = document.getElementById('autogen-btn');
+  btn.disabled = false;
+  document.getElementById('autogen-icon').className = '';
+  document.getElementById('autogen-icon').textContent = '⚡';
+  document.getElementById('autogen-label').textContent = 'Volver a investigar';
+}
+
+function applyResearchToForm(r) {
+  // Hashtags — merge all groups
+  const allTags = Object.values(r.hashtags || {}).flat().slice(0,20);
+  addTagsFromArray('hashtags-wrap', allTags);
+
+  // Competitive advantages → values
+  const advValues = (r.competitive_advantages || []).map(a => a.advantage).slice(0,4);
+  addTagsFromArray('values-wrap', advValues);
+
+  // Positioning
+  if (r.positioning && !document.getElementById('f-positioning').value) {
+    document.getElementById('f-positioning').value = r.positioning;
+  }
+
+  // Tone
+  if (r.voice?.tone && !document.getElementById('f-tone').value) {
+    document.getElementById('f-tone').value = r.voice.tone;
+  }
+
+  // Do/dont
+  if (r.voice?.do) addTagsFromArray('do-wrap', r.voice.do.slice(0,3));
+  if (r.voice?.dont) addTagsFromArray('dont-wrap', r.voice.dont.slice(0,3));
+
+  // Audience pain points
+  const pains = r.audience?.primary?.pain_points || [];
+  if (pains.length && !document.getElementById('f-pain').value) {
+    document.getElementById('f-pain').value = pains.join('. ');
+  }
+  if (r.audience?.primary?.psychographics && !document.getElementById('f-interests').value) {
+    document.getElementById('f-interests').value = r.audience.primary.psychographics;
+  }
+}
+
+function renderResearch(r) {
+  const el = document.getElementById('research-results');
+  let html = '';
+
+  // Summary
+  if (r.research_summary) {
+    html += `<div class="summary-box"><p>${r.research_summary}</p></div>`;
+  }
+
+  // Competitors
+  if (r.competitors?.length) {
+    html += `<div class="r-section">
+      <div class="r-section-title">🏆 Competidores (${r.competitors.length})</div>`;
+    r.competitors.forEach(c => {
+      html += `<div class="r-card">
+        <div class="r-card-title">${c.name} <span style="font-size:10px;opacity:.6">${c.type}</span></div>
+        <div class="r-card-sub">${c.market_position}</div>
+        <div style="margin-top:6px">
+          ${(c.weaknesses||[]).slice(0,2).map(w => `<span class="r-tag" style="background:rgba(239,68,68,.15);color:#fca5a5">⚠ ${w}</span>`).join('')}
+        </div>
+      </div>`;
+    });
+    html += '</div>';
+  }
+
+  // Competitive advantages
+  if (r.competitive_advantages?.length) {
+    html += `<div class="r-section">
+      <div class="r-section-title">✨ Ventajas competitivas</div>`;
+    r.competitive_advantages.forEach(a => {
+      html += `<div class="r-card">
+        <div class="r-card-title">${a.advantage}</div>
+        <div class="r-card-sub">${a.explanation}</div>
+      </div>`;
+    });
+    html += '</div>';
+  }
+
+  // Hashtags
+  if (r.hashtags) {
+    html += `<div class="r-section"><div class="r-section-title">📌 Hashtags por categoría</div>`;
+    Object.entries(r.hashtags).forEach(([cat, tags]) => {
+      if (!tags?.length) return;
+      html += `<div style="margin-bottom:10px">
+        <div style="color:rgba(255,255,255,.5);font-size:10px;font-weight:700;margin-bottom:5px">${cat.toUpperCase()}</div>
+        ${tags.map(t => `<span class="r-tag">${t}</span>`).join('')}
+      </div>`;
+    });
+    html += `<button class="r-accept-btn" onclick="acceptAllHashtags()">✓ Aplicar todos los hashtags</button>`;
+    html += '</div>';
+  }
+
+  // Content pillars
+  if (r.content_pillars?.length) {
+    html += `<div class="r-section">
+      <div class="r-section-title">📐 Pilares de contenido</div>`;
+    r.content_pillars.forEach(p => {
+      html += `<div class="r-card">
+        <div class="r-card-title">${p.pillar} <span style="font-size:10px;opacity:.5">${p.frequency||''}</span></div>
+        <div class="r-card-sub">${p.description}</div>
+        ${p.examples?.length ? '<div style="margin-top:4px">'+p.examples.slice(0,1).map(e=>`<span class="r-tag">${e}</span>`).join('')+'</div>' : ''}
+      </div>`;
+    });
+    html += '</div>';
+  }
+
+  // Market insights
+  if (r.market_insights?.length) {
+    html += `<div class="r-section">
+      <div class="r-section-title">📊 Insights de mercado</div>`;
+    r.market_insights.forEach(ins => {
+      const badgeCls = ins.type === 'tendencia' ? 'badge-trend' : ins.type === 'oportunidad' ? 'badge-opp' : 'badge-threat';
+      const icon = ins.type === 'tendencia' ? '📈' : ins.type === 'oportunidad' ? '🚀' : '⚠️';
+      html += `<div class="r-insight">
+        <span class="r-insight-badge ${badgeCls}">${icon} ${ins.type}</span>
+        <div class="r-insight-text">${ins.insight}</div>
+      </div>`;
+    });
+    html += '</div>';
+  }
+
+  // Tagline suggestions
+  if (r.tagline_suggestions?.length) {
+    html += `<div class="r-section">
+      <div class="r-section-title">💬 Taglines sugeridos</div>
+      <div class="r-card">`;
+    r.tagline_suggestions.forEach(t => {
+      html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.07)">
+        <span style="color:rgba(255,255,255,.8);font-size:12px">${t}</span>
+        <button style="background:none;border:none;color:var(--aqua);font-size:11px;cursor:pointer;font-weight:700"
+          onclick="document.getElementById('f-tagline').value='${t.replace(/'/g,"\\'")}';toast('✓ Tagline aplicado')">Usar</button>
+      </div>`;
+    });
+    html += '</div></div>';
+  }
+
+  // Missing data
+  if (r.missing_data?.length) {
+    html += `<div class="r-section">
+      <div class="r-section-title">⚠️ Información que falta</div>
+      <div class="r-card">
+        ${r.missing_data.map(m => `<div style="color:rgba(255,255,255,.6);font-size:12px;padding:3px 0">• ${m}</div>`).join('')}
+      </div>
+    </div>`;
+  }
+
+  el.innerHTML = html;
+}
+
+function acceptAllHashtags() {
+  if (!researchData?.hashtags) return;
+  const all = Object.values(researchData.hashtags).flat();
+  addTagsFromArray('hashtags-wrap', all);
+  toast('✓ Hashtags aplicados al formulario');
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function setVal(id, val) {
+  const el = document.getElementById(id);
+  if (el && val != null) el.value = val;
+}
+function slugify(el) {
+  el.value = el.value.toLowerCase().replace(/[^a-z0-9_]/g, '_').replace(/__+/g,'_');
+}
+function toast(msg, isError) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = isError ? '#ef4444' : 'var(--navy)';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+init();
+</script>
+</body>
+</html>
