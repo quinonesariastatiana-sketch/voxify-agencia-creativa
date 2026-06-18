@@ -1312,6 +1312,8 @@ def save_manual_lead():
     fuente   = data.get("fuente", "telegram_tatiana")
     if not nombre:
         return jsonify({"error": "nombre_negocio requerido"}), 400
+    if not os.path.exists(db_path):
+        return jsonify({"error": "DB not mounted — lead no guardado en Railway"}), 503
     try:
         conn = sqlite3.connect(db_path)
         c = conn.cursor()
