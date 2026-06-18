@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Voxify — Inicio</title>
+<style>
+:root{
+  --navy:#0A2540;--purple:#635BFF;--aqua:#20C6B7;
+  --navy-light:#0e3058;--purple-light:#ece9ff;--aqua-light:#e0faf8;
+  --bg:#f0f2f8;--card:#fff;--border:#e2e6ef;
+  --text:#1a2340;--muted:#6b7a99;--success:#22c55e;
+  --warning:#f59e0b;--danger:#ef4444;
+  --radius:16px;--shadow:0 4px 24px rgba(10,37,64,.10);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  background:var(--bg);color:var(--text);min-height:100vh;}
+
+/* NAV */
+.topnav{background:var(--navy);height:64px;padding:0 32px;display:flex;
+  align-items:center;justify-content:space-between;}
+.logo{color:#fff;font-weight:900;font-size:22px;letter-spacing:-1px;}
+.logo span{color:var(--aqua);}
+.nav-actions{display:flex;gap:10px;align-items:center;}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 20px;
+  border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;
+  border:none;transition:all .2s;text-decoration:none;}
+.btn-primary{background:var(--purple);color:#fff;}
+.btn-primary:hover{background:#4f49cc;}
+.btn-ghost{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.2);}
+.btn-ghost:hover{background:rgba(255,255,255,.18);}
+
+/* HERO */
+.hero{background:linear-gradient(135deg,var(--navy) 0%,#1a1080 60%,#0e4a6e 100%);
+  padding:56px 32px 48px;text-align:center;}
+.hero h1{color:#fff;font-size:36px;font-weight:900;letter-spacing:-1px;margin-bottom:10px;}
+.hero p{color:rgba(255,255,255,.65);font-size:16px;max-width:520px;margin:0 auto;}
+.hero-pills{display:flex;gap:10px;justify-content:center;margin-top:20px;flex-wrap:wrap;}
+.hero-pill{background:rgba(255,255,255,.1);color:rgba(255,255,255,.8);border:1px solid rgba(255,255,255,.2);
+  border-radius:30px;padding:6px 16px;font-size:13px;font-weight:600;}
+
+/* MAIN */
+.main{max-width:1200px;margin:0 auto;padding:40px 24px;}
+.section-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;}
+.section-header h2{font-size:20px;font-weight:800;color:var(--navy);}
+.section-header p{color:var(--muted);font-size:14px;margin-top:2px;}
+
+/* BRAND GRID */
+.brand-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px;}
+
+/* BRAND CARD */
+.brand-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);
+  overflow:hidden;transition:transform .2s,box-shadow .2s;cursor:pointer;}
+.brand-card:hover{transform:translateY(-3px);box-shadow:0 8px 32px rgba(10,37,64,.15);}
+.brand-card-top{padding:20px 24px;display:flex;align-items:center;gap:14px;
+  border-bottom:1px solid var(--border);}
+.brand-avatar{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;
+  justify-content:center;font-weight:900;font-size:18px;color:#fff;flex-shrink:0;overflow:hidden;}
+.brand-avatar img{width:100%;height:100%;object-fit:cover;}
+.brand-card-info{flex:1;min-width:0;}
+.brand-card-info .bname{font-size:17px;font-weight:800;color:var(--navy);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.brand-card-info .btag{font-size:12px;color:var(--muted);margin-top:2px;}
+.brand-card-info .bindustry{font-size:11px;color:var(--muted);margin-top:4px;
+  display:flex;align-items:center;gap:4px;}
+.status-dot{width:7px;height:7px;border-radius:50%;display:inline-block;}
+.dot-green{background:var(--success);}
+.dot-yellow{background:var(--warning);}
+.dot-gray{background:#cbd5e1;}
+
+/* BRAND STATS */
+.brand-stats{display:flex;padding:12px 24px;gap:0;border-bottom:1px solid var(--border);}
+.bstat{flex:1;text-align:center;padding:4px 0;}
+.bstat:not(:last-child){border-right:1px solid var(--border);}
+.bstat .sv{font-size:20px;font-weight:800;color:var(--navy);}
+.bstat .sl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:1px;}
+
+/* MODULE LINKS */
+.module-links{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);}
+.module-link{background:var(--card);padding:14px 10px;text-align:center;
+  text-decoration:none;transition:background .15s;display:flex;
+  flex-direction:column;align-items:center;gap:4px;}
+.module-link:hover{background:#f8f9ff;}
+.module-link .mi{font-size:20px;}
+.module-link .ml{font-size:11px;font-weight:700;color:var(--navy);}
+.module-link .ms{font-size:10px;color:var(--muted);}
+.module-link.disabled{opacity:.4;pointer-events:none;}
+
+/* NEW BRAND CARD */
+.new-brand-card{background:var(--card);border-radius:var(--radius);
+  box-shadow:var(--shadow);border:2.5px dashed var(--border);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:48px 24px;gap:12px;cursor:pointer;transition:all .2s;text-decoration:none;}
+.new-brand-card:hover{border-color:var(--purple);background:var(--purple-light);}
+.new-brand-card .icon{width:56px;height:56px;border-radius:16px;background:var(--purple-light);
+  display:flex;align-items:center;justify-content:center;font-size:26px;
+  transition:background .2s;}
+.new-brand-card:hover .icon{background:var(--purple);filter:brightness(1.1);}
+.new-brand-card h3{font-size:15px;font-weight:800;color:var(--navy);}
+.new-brand-card p{font-size:13px;color:var(--muted);text-align:center;max-width:200px;}
+
+/* EMPTY STATE */
+.empty-brands{text-align:center;padding:80px 24px;}
+.empty-brands .icon{font-size:56px;margin-bottom:16px;}
+.empty-brands h2{font-size:22px;font-weight:800;color:var(--navy);margin-bottom:8px;}
+.empty-brands p{color:var(--muted);font-size:15px;margin-bottom:24px;}
+
+/* SKELETON */
+.skeleton{background:linear-gradient(90deg,#f0f2f8 25%,#e2e6ef 50%,#f0f2f8 75%);
+  background-size:400% 100%;animation:shimmer 1.4s infinite;border-radius:8px;}
+@keyframes shimmer{0%{background-position:100% 0}100%{background-position:-100% 0}}
+
+/* FOOTER */
+.footer{text-align:center;padding:32px;color:var(--muted);font-size:12px;margin-top:40px;}
+.footer span{color:var(--purple);font-weight:600;}
+
+@media(max-width:640px){
+  .hero h1{font-size:26px;}
+  .module-links{grid-template-columns:repeat(3,1fr);}
+}
+</style>
+</head>
+<body>
+
+<nav class="topnav">
+  <div class="logo">Voxify <span>Hub</span></div>
+  <div class="nav-actions">
+    <a href="/brand/new" class="btn btn-ghost">+ Nueva marca</a>
+  </div>
+</nav>
+
+<div class="hero">
+  <h1>Tus marcas, centralizadas</h1>
+  <p>Gestiona contenido, ventas, estrategia y automatización para cada marca desde un solo lugar</p>
+  <div class="hero-pills">
+    <div class="hero-pill">📸 Creative Studio</div>
+    <div class="hero-pill">💰 Sales Agent 24/7</div>
+    <div class="hero-pill">🎯 Brand Strategy</div>
+    <div class="hero-pill">📊 Analytics</div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="section-header">
+    <div>
+      <h2>Mis marcas</h2>
+      <p id="brand-count-label">Cargando...</p>
+    </div>
+    <a href="/brand/new" class="btn btn-primary">+ Nueva marca</a>
+  </div>
+
+  <div class="brand-grid" id="brand-grid">
+    <!-- Skeleton -->
+    <div style="background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:24px">
+      <div style="display:flex;gap:14px;align-items:center">
+        <div class="skeleton" style="width:52px;height:52px;border-radius:14px"></div>
+        <div style="flex:1">
+          <div class="skeleton" style="height:16px;width:60%;margin-bottom:8px"></div>
+          <div class="skeleton" style="height:12px;width:40%"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  Voxify Hub · Powered by <span>Claude AI</span> · Todos los datos son independientes por marca
+</div>
+
+<script>
+const MODULES = [
+  { icon:'📸', label:'Creative', sub:'Contenido & posts', path:'/creative', brand_param:true },
+  { icon:'💰', label:'Sales',    sub:'Agente 24/7',       path:'/sales/user', brand_param:false },
+  { icon:'⚙️', label:'Config',  sub:'Ajustes de marca',   path:'/brand/',     brand_param:false, is_brand:true },
+];
+
+async function init() {
+  const r = await fetch('/api/brands');
+  const brands = await r.json();
+
+  const grid = document.getElementById('brand-grid');
+  const label = document.getElementById('brand-count-label');
+  label.textContent = brands.length === 0
+    ? 'No tienes marcas aún. Crea la primera.'
+    : `${brands.length} marca${brands.length > 1 ? 's' : ''} activa${brands.length > 1 ? 's' : ''}`;
+
+  if (!brands.length) {
+    grid.innerHTML = `
+      <div class="empty-brands" style="grid-column:1/-1">
+        <div class="icon">🚀</div>
+        <h2>Crea tu primera marca</h2>
+        <p>Configura una marca para empezar a generar contenido, gestionar leads y automatizar tu estrategia de marketing.</p>
+        <a href="/brand/new" class="btn btn-primary" style="display:inline-flex">+ Crear primera marca</a>
+      </div>`;
+    return;
+  }
+
+  // Load stats for each brand in parallel
+  const statsPromises = brands.map(b =>
+    fetch('/api/brands/' + b.id).then(r => r.json()).catch(() => ({}))
+  );
+  const brandDetails = await Promise.all(statsPromises);
+
+  grid.innerHTML = '';
+
+  brands.forEach((b, i) => {
+    const details = brandDetails[i] || {};
+    const stats   = details.stats || {};
+    const config  = details.config || b;
+    const color   = b.color || '#635BFF';
+    const initials = b.name.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+    const hasResearch = !!config.last_research;
+
+    const logoHtml = config.logo_url
+      ? `<img src="${config.logo_url}" alt="${b.name}">`
+      : initials;
+
+    const card = document.createElement('div');
+    card.className = 'brand-card';
+    card.innerHTML = `
+      <div class="brand-card-top" onclick="window.location='/brand/${b.id}'">
+        <div class="brand-avatar" style="background:${color}">${logoHtml}</div>
+        <div class="brand-card-info">
+          <div class="bname">${b.name}</div>
+          <div class="btag">${b.tagline || config.tagline || ''}</div>
+          <div class="bindustry">
+            <span class="status-dot dot-green"></span>
+            ${config.industry || 'Sin industria'} · ${config.geography || ''}
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">
+          ${hasResearch ? '<span style="font-size:10px;font-weight:700;background:#dcfce7;color:#166534;padding:2px 8px;border-radius:20px">🔍 Investigada</span>' : '<span style="font-size:10px;font-weight:700;background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:20px">⚡ Sin investigar</span>'}
+        </div>
+      </div>
+      <div class="brand-stats">
+        <div class="bstat">
+          <div class="sv">${stats.published_month || 0}</div>
+          <div class="sl">Posts mes</div>
+        </div>
+        <div class="bstat">
+          <div class="sv">${stats.pending_approval || 0}</div>
+          <div class="sl">En revisión</div>
+        </div>
+        <div class="bstat">
+          <div class="sv">${stats.scheduled_next_7 || 0}</div>
+          <div class="sl">Próx. 7 días</div>
+        </div>
+      </div>
+      <div class="module-links">
+        <a href="/creative?brand=${b.id}" class="module-link">
+          <span class="mi">📸</span>
+          <span class="ml">Creative</span>
+          <span class="ms">Contenido</span>
+        </a>
+        <a href="/brand/${b.id}" class="module-link">
+          <span class="mi">🎯</span>
+          <span class="ml">Estrategia</span>
+          <span class="ms">Marca</span>
+        </a>
+        <a href="/brands#${b.id}" class="module-link">
+          <span class="mi">⚙️</span>
+          <span class="ml">Config</span>
+          <span class="ms">Ajustes</span>
+        </a>
+      </div>`;
+    grid.appendChild(card);
+  });
+
+  // Add "new brand" card at the end
+  const newCard = document.createElement('a');
+  newCard.href = '/brand/new';
+  newCard.className = 'new-brand-card';
+  newCard.innerHTML = `
+    <div class="icon">➕</div>
+    <h3>Agregar marca</h3>
+    <p>Configura una nueva marca con investigación profunda de mercado</p>`;
+  grid.appendChild(newCard);
+}
+
+init();
+</script>
+</body>
+</html>
