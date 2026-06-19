@@ -25,43 +25,59 @@ def _conn():
     return c
 
 
-def _apply_migrations(c):
-    """Add missing columns when upgrading from old schema."""
-    cols = {r[1] for r in c.execute("PRAGMA table_info(brands)").fetchall()}
-    if not cols:
-        return
-    new_cols = [
-        ("brand_values",             "TEXT",    "DEFAULT '[]'"),
-        ("mission",                  "TEXT",    "DEFAULT ''"),
-        ("positioning",              "TEXT",    "DEFAULT ''"),
-        ("strategy_phases",          "TEXT",    "DEFAULT '{}'"),
-        ("voice",                    "TEXT",    "DEFAULT '{}'"),
-        ("kpi_30_days",              "TEXT",    "DEFAULT '[]'"),
-        ("kpi_60_days",              "TEXT",    "DEFAULT '[]'"),
-        ("kpi_90_days",              "TEXT",    "DEFAULT '[]'"),
-        ("audience_profile",         "TEXT",    "DEFAULT ''"),
-        ("brand_tone",               "TEXT",    "DEFAULT ''"),
-        ("unique_value_proposition", "TEXT",    "DEFAULT ''"),
-        ("last_research",            "TEXT",    ""),
-        ("active",                   "INTEGER", "DEFAULT 1"),
-        ("instagram_account_id",     "TEXT",    "DEFAULT ''"),
-        ("facebook_page_id",         "TEXT",    "DEFAULT ''"),
-        ("meta_access_token",        "TEXT",    "DEFAULT ''"),
-        ("instagram_handle",         "TEXT",    "DEFAULT ''"),
-        ("geography",                "TEXT",    "DEFAULT 'United States'"),
-        ("color",                    "TEXT",    "DEFAULT '#635BFF'"),
-        ("logo_url",                 "TEXT",    "DEFAULT ''"),
-        ("website_url",              "TEXT",    "DEFAULT ''"),
-        ("differentiators",          "TEXT",    "DEFAULT '[]'"),
-        ("competitors",              "TEXT",    "DEFAULT '[]'"),
-        ("hashtags",                 "TEXT",    "DEFAULT '[]'"),
-    ]
-    for col_name, col_type, col_default in new_cols:
-        if col_name not in cols:
-            c.execute(f"ALTER TABLE brands ADD COLUMN {col_name} {col_type} {col_default}")
-    # Copy old `values` column → brand_values if upgrading
-    if "values" in cols and "brand_values" in cols:
-        c.execute('UPDATE brands SET brand_values = "values" WHERE brand_values IS NULL OR brand_values = \'[]\'')
+_REQUIRED_BRAND_COLS = frozenset({
+    'id', 'name', 'tagline', 'description', 'industry', 'geography',
+    'website_url', 'logo_url', 'instagram_handle', 'color',
+    'meta_access_token', 'instagram_account_id', 'facebook_page_id',
+    'competitors', 'differentiators', 'audience_profile', 'brand_tone',
+    'unique_value_proposition', 'hashtags', 'kpi_30_days', 'kpi_60_days',
+    'kpi_90_days', 'strategy_phases', 'mission', 'brand_values', 'voice',
+    'positioning', 'last_research', 'active', 'created_at', 'updated_at',
+})
+
+_BRANDS_DDL = """
+CREATE TABLE brands (
+    id                       TEXT PRIMARY KEY,
+    name                     TEXT NOT NULL,
+    tagline                  TEXT DEFAULT '',
+    description              TEXT DEFAULT '',
+    industry                 TEXT DEFAULT '',
+    geography                TEXT DEFAULT 'United States',
+    website_url              TEXT DEFAULT '',
+    logo_url                 TEXT DEFAULT '',
+    instagram_handle         TEXT DEFAULT '',
+    color                    TEXT DEFAULT '#635BFF',
+    meta_access_token        TEXT DEFAULT '',
+    instagram_account_id     TEXT DEFAULT '',
+    facebook_page_id         TEXT DEFAULT '',
+    competitors              TEXT DEFAULT '[]',
+    differentiators          TEXT DEFAULT '[]',
+    audience_profile         TEXT DEFAULT '',
+    brand_tone               TEXT DEFAULT '',
+    unique_value_proposition TEXT DEFAULT '',
+    hashtags                 TEXT DEFAULT '[]',
+    kpi_30_days              TEXT DEFAULT '[]',
+    kpi_60_days              TEXT DEFAULT '[]',
+    kpi_90_days              TEXT DEFAULT '[]',
+    strategy_phases          TEXT DEFAULT '{}',
+    mission                  TEXT DEFAULT '',
+    brand_values             TEXT DEFAULT '[]',
+    voice                    TEXT DEFAULT '{}',
+    positioning              TEXT DEFAULT '',
+    last_research            TEXT,
+    active                   INTEGER DEFAULT 1,
+    created_at               TEXT DEFAULT (datetime('now')),
+    updated_at               TEXT DEFAULT (datetime('now'))
+);
+"""
+
+
+def _check_and_fix_schema():
+    """Drop and recreate brands table if it's missing required columns."""
+    with _conn() as c:
+        cols = {r[1] for r in c.execute("PRAGMA table_info(brands)").fetchall()}
+        if cols and not _REQUIRED_BRAND_COLS.issubset(cols):
+            c.executescript(f"DROP TABLE IF EXISTS brands; {_BRANDS_DDL}")
 
 
 def init_db():
@@ -136,7 +152,7 @@ def init_db():
             created_at TEXT DEFAULT (datetime('now'))
         );
         """)
-        _apply_migrations(c)
+    _check_and_fix_schema()
 
 
 def _load(row: dict) -> dict:
