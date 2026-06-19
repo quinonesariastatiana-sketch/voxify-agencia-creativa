@@ -2278,10 +2278,10 @@ function applyBrandToForm(brand) {
   if (brand.mission)     v("f-mission", brand.mission);
   if (brand.industry)    v("f-industry", brand.industry);
   if (brand.geography)   v("f-geography", brand.geography);
-  if (brand.values?.length)   setTags("values", brand.values);
-  if (brand.hashtags?.length) setTags("hashtags", brand.hashtags);
+  if (brand.values?.length)   setTags("tags-values", "values", brand.values);
+  if (brand.hashtags?.length) setTags("tags-hashtags", "hashtags", brand.hashtags);
   const voice = brand.voice || {};
-  if (voice.adjectives?.length) setTags("voice_adjectives", voice.adjectives);
+  if (voice.adjectives?.length) setTags("tags-voice", "voice_adjectives", voice.adjectives);
   if (voice.avoid)   v("f-voice-avoid", voice.avoid);
   if (voice.formality != null) {
     const slider = document.getElementById("f-formality");
@@ -2292,7 +2292,7 @@ function applyBrandToForm(brand) {
   }
   const pos = brand.positioning || {};
   if (pos.usp)                    v("f-usp", pos.usp);
-  if (pos.differentiators?.length) setTags("differentiators", pos.differentiators);
+  if (pos.differentiators?.length) setTags("tags-diff", "differentiators", pos.differentiators);
   if (pos.competitors?.length) {
     pos.competitors.forEach((comp, idx) => {
       const nameEl = document.getElementById(`comp${idx}-name`);
