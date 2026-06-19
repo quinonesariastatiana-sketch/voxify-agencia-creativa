@@ -235,74 +235,73 @@ def api_scheduler_trigger():
 
 @app.route('/api/seed', methods=['POST'])
 def api_seed():
+    import traceback as _tb
     results = {}
+    try:
+        vox_token = os.environ.get('META_ACCESS_TOKEN_VOXIFY', '')
+        vox_ig    = os.environ.get('INSTAGRAM_BUSINESS_ACCOUNT_ID_VOXIFY', '17841478805587018')
+        vox_fb    = os.environ.get('FACEBOOK_PAGE_ID_VOXIFY', '860119253859919')
 
-    # ── VoxifyHub ─────────────────────────────────────────────────────────────
-    vox_token = os.environ.get('META_ACCESS_TOKEN_VOXIFY', '')
-    vox_ig    = os.environ.get('INSTAGRAM_BUSINESS_ACCOUNT_ID_VOXIFY', '17841478805587018')
-    vox_fb    = os.environ.get('FACEBOOK_PAGE_ID_VOXIFY', '860119253859919')
+        if not db.get_brand('voxifyhub'):
+            db.create_brand('voxifyhub', 'VoxifyHub',
+                            tagline              = 'Answer smarter. Grow faster.',
+                            description          = 'Plataforma de gestión de redes sociales con IA para agencias creativas y marcas multi-canal.',
+                            industry             = 'SaaS / Marketing Technology',
+                            geography            = 'United States',
+                            website_url          = 'https://www.voxifyhub.com',
+                            instagram_handle     = '@voxifyhub',
+                            color                = '#635BFF',
+                            meta_access_token    = vox_token,
+                            instagram_account_id = vox_ig,
+                            facebook_page_id     = vox_fb)
+            results['voxifyhub'] = 'created'
+        else:
+            results['voxifyhub'] = 'already_exists'
 
-    if not db.get_brand('voxifyhub'):
-        db.create_brand('voxifyhub', 'VoxifyHub',
-                        tagline              = 'Answer smarter. Grow faster.',
-                        description          = 'Plataforma de gestión de redes sociales con IA para agencias creativas y marcas multi-canal.',
-                        industry             = 'SaaS / Marketing Technology',
-                        geography            = 'United States',
-                        website_url          = 'https://www.voxifyhub.com',
-                        instagram_handle     = '@voxifyhub',
-                        color                = '#635BFF',
-                        meta_access_token    = vox_token,
-                        instagram_account_id = vox_ig,
-                        facebook_page_id     = vox_fb)
-        results['voxifyhub'] = 'created'
-    else:
-        results['voxifyhub'] = 'already_exists'
+        aroma_token = os.environ.get('META_ACCESS_TOKEN_AROMA',
+                       os.environ.get('META_ACCESS_TOKEN', ''))
+        aroma_ig    = os.environ.get('INSTAGRAM_BUSINESS_ACCOUNT_ID_AROMA', '17841430977157582')
+        aroma_fb    = os.environ.get('FACEBOOK_PAGE_ID_AROMA', '1070241312848461')
 
-    # ── Aroma Beans ───────────────────────────────────────────────────────────
-    aroma_token = os.environ.get('META_ACCESS_TOKEN_AROMA',
-                   os.environ.get('META_ACCESS_TOKEN', ''))
-    aroma_ig    = os.environ.get('INSTAGRAM_BUSINESS_ACCOUNT_ID_AROMA', '17841430977157582')
-    aroma_fb    = os.environ.get('FACEBOOK_PAGE_ID_AROMA', '1070241312848461')
+        if not db.get_brand('aromabeans'):
+            db.create_brand('aromabeans', 'Aroma Beans',
+                            tagline              = 'El café colombiano que conquista Miami.',
+                            description          = 'Café colombiano de especialidad para la comunidad latina en Miami y el sur de Florida.',
+                            industry             = 'Café / Alimentos y Bebidas',
+                            geography            = 'Miami, Florida, USA',
+                            instagram_handle     = '@aromabeanscol',
+                            color                = '#8B4513',
+                            meta_access_token    = aroma_token,
+                            instagram_account_id = aroma_ig,
+                            facebook_page_id     = aroma_fb)
+            results['aromabeans'] = 'created'
+        else:
+            results['aromabeans'] = 'already_exists'
 
-    if not db.get_brand('aromabeans'):
-        db.create_brand('aromabeans', 'Aroma Beans',
-                        tagline              = 'El café colombiano que conquista Miami.',
-                        description          = 'Café colombiano de especialidad para la comunidad latina en Miami y el sur de Florida.',
-                        industry             = 'Café / Alimentos y Bebidas',
-                        geography            = 'Miami, Florida, USA',
-                        instagram_handle     = '@aromabeanscol',
-                        color                = '#8B4513',
-                        meta_access_token    = aroma_token,
-                        instagram_account_id = aroma_ig,
-                        facebook_page_id     = aroma_fb)
-        results['aromabeans'] = 'created'
-    else:
-        results['aromabeans'] = 'already_exists'
+        vox = db.get_brand('voxifyhub')
+        if vox:
+            research = agent.research_brand(vox)
+            if research.get('research'):
+                db.safe_patch_brand('voxifyhub', research['research'])
+            results['voxifyhub_research'] = {
+                'success':       research.get('success'),
+                'fields_filled': research.get('fields_filled', 0),
+                'errors':        research.get('errors', []),
+            }
 
-    # ── Research VoxifyHub ────────────────────────────────────────────────────
-    vox = db.get_brand('voxifyhub')
-    if vox:
-        research = agent.research_brand(vox)
-        if research.get('research'):
-            db.safe_patch_brand('voxifyhub', research['research'])
-        results['voxifyhub_research'] = {
-            'success':      research.get('success'),
-            'fields_filled': research.get('fields_filled', 0),
-            'errors':       research.get('errors', []),
-        }
-
-    # ── Test post ─────────────────────────────────────────────────────────────
-    post_id = db.create_post(
-        'voxifyhub',
-        "🚀 VoxifyHub transforma la gestión de contenido para agencias creativas.\n\n"
-        "Con IA avanzada, publica más contenido de calidad en menos tiempo. "
-        "¿Lista para escalar tu presencia digital?\n\n"
-        "#VoxifyHub #MarketingDigital #AgenciaCreativa #IA #RedesSociales",
-        platform='instagram',
-    )
-    results['test_post_id'] = post_id
-
-    return jsonify({'success': True, 'results': results})
+        post_id = db.create_post(
+            'voxifyhub',
+            "🚀 VoxifyHub transforma la gestión de contenido para agencias creativas.\n\n"
+            "Con IA avanzada, publica más contenido de calidad en menos tiempo. "
+            "¿Lista para escalar tu presencia digital?\n\n"
+            "#VoxifyHub #MarketingDigital #AgenciaCreativa #IA #RedesSociales",
+            platform='instagram',
+        )
+        results['test_post_id'] = post_id
+        return jsonify({'success': True, 'results': results})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e),
+                        'trace': _tb.format_exc()[-2000:]}), 500
 
 
 # ── Entry Point ───────────────────────────────────────────────────────────────
