@@ -115,6 +115,15 @@ def research_brand_route(brand_id):
     brand_data = data.get("brand_data", {})
     save_to_brand = data.get("save", False)
 
+    # Auto-load brand config from DB if brand_data not supplied
+    if not brand_data and brand_id != "preview":
+        brand_config = db.get_brand_config(brand_id)
+        if brand_config:
+            brand_data = brand_config
+
+    if not brand_data:
+        return jsonify({"success": False, "error": "brand_data requerido o marca no encontrada"}), 400
+
     result = research_brand(brand_data)
     if not result.get("success"):
         return jsonify(result), 500
@@ -907,11 +916,27 @@ def get_strategy():
     week = today.isocalendar()[1]
     days_elapsed = (today - date(2026, 6, 13)).days
     targets = MONTHLY_TARGETS.get(min(phase, 3), MONTHLY_TARGETS[3])
-    lines = [{"id": k, "name": v["name"], "percentage": int(v["percentage"]*100),
-              "description": v["description"]} for k, v in CONTENT_LINES.items()]
+
+    # Use brand-specific content_lines from DB if brand param provided
+    brand_id = brand_id_from_request()
+    brand_config = db.get_brand_config(brand_id) if brand_id else None
+    brand_content_lines = brand_config.get("content_lines", []) if brand_config else []
+
+    if brand_content_lines:
+        lines = [
+            {"id": cl.get("id", cl.get("name", str(i))),
+             "name": cl.get("name", ""),
+             "percentage": int(float(cl.get("percentage", 0)) * 100) if float(cl.get("percentage", 0)) <= 1 else int(cl.get("percentage", 0)),
+             "description": cl.get("description", "")}
+            for i, cl in enumerate(brand_content_lines)
+        ]
+    else:
+        lines = [{"id": k, "name": v["name"], "percentage": int(v["percentage"]*100),
+                  "description": v["description"]} for k, v in CONTENT_LINES.items()]
 
     recent_strategy = db.conn.execute(
-        "SELECT week_number, phase, theme, created_at FROM weekly_strategy ORDER BY id DESC LIMIT 5"
+        "SELECT week_number, phase, theme, created_at FROM weekly_strategy WHERE brand_id=? ORDER BY id DESC LIMIT 5",
+        (brand_id,)
     ).fetchall()
 
     return jsonify({
@@ -921,6 +946,8 @@ def get_strategy():
         "current_week": week,
         "targets": targets,
         "content_lines": lines,
+        "brand": brand_id,
+        "brand_name": brand_config.get("name", brand_id) if brand_config else brand_id,
         "recent_weekly_runs": [
             {"week": r[0], "phase": r[1], "created_at": r[3]} for r in recent_strategy
         ],
