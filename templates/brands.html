@@ -520,11 +520,10 @@ input[type=range] { flex: 1; accent-color: var(--purple); }
 
           <!-- Panel de insights IA -->
           <div id="insights-panel" style="display:none" class="section">
-            <div class="section-title" style="color:#059669"><span>✨</span> Insights extraídos por IA — Revisa y aplica</div>
+            <div class="section-title" style="color:#059669"><span>✨</span> Análisis completado — datos guardados automáticamente</div>
             <div id="insights-summary" style="background:#F0FDF4;border:1px solid #6EE7B7;border-radius:10px;padding:16px;margin-bottom:16px;font-size:13px;line-height:1.6;white-space:pre-wrap"></div>
             <div style="display:flex;gap:10px;flex-wrap:wrap">
-              <button class="btn-green" onclick="applyInsights()">✓ Aplicar todos los campos sugeridos</button>
-              <button class="btn-secondary" onclick="document.getElementById('insights-panel').style.display='none'">Descartar</button>
+              <button class="btn-secondary" onclick="document.getElementById('insights-panel').style.display='none'">Cerrar resumen</button>
             </div>
           </div>
 
@@ -2181,10 +2180,12 @@ async function handleManualSelect(input) {
   if (!input.files[0]) return;
   if (!currentBrandId) { toast("Guarda la marca primero para subir el manual", "error"); return; }
   const file = input.files[0];
-  document.getElementById("manual-upload-status").textContent = "Procesando PDF...";
+  const statusEl = document.getElementById("manual-upload-status");
+  statusEl.textContent = "Leyendo manual...";
   const fd = new FormData();
   fd.append("file", file);
   try {
+    statusEl.textContent = "Analizando con IA y guardando...";
     const r = await fetch(`/api/brands/${currentBrandId}/upload-manual`, { method: "POST", body: fd });
     const d = await r.json();
     if (d.success) {
@@ -2192,19 +2193,20 @@ async function handleManualSelect(input) {
       document.getElementById("manual-loaded").style.display = "block";
       document.getElementById("manual-name").textContent = file.name;
       document.getElementById("manual-chars").textContent = `${d.chars} caracteres extraídos`;
-      document.getElementById("manual-upload-status").textContent = "✓ Manual procesado";
-      toast(`Manual cargado — ${d.chars} caracteres extraídos`, "success");
+      const resMsg = d.research_applied ? " + investigación profunda completada" : "";
+      statusEl.textContent = `✓ Manual analizado${resMsg}`;
+      toast(`Manual analizado — datos guardados automáticamente`, "success");
+      // Reload brand form with updated data
+      if (d.brand) applyBrandToForm(d.brand);
     } else {
-      document.getElementById("manual-upload-status").textContent = "Error: " + d.error;
+      statusEl.textContent = "Error: " + d.error;
     }
   } catch (e) {
-    document.getElementById("manual-upload-status").textContent = "Error de red";
+    statusEl.textContent = "Error de red: " + e.message;
   }
 }
 
 // ── Analyze with AI ───────────────────────────────────────────────────────
-let _pendingInsights = null;
-
 async function analyzeWithAI() {
   if (!currentBrandId) { toast("Guarda la marca primero", "error"); return; }
   const website = document.getElementById("f-website").value.trim();
@@ -2216,13 +2218,15 @@ async function analyzeWithAI() {
     youtube:   document.getElementById("f-social-youtube").value.trim(),
     store:     document.getElementById("f-social-store").value.trim(),
   };
-  const hasSocial = Object.values(socialUrls).some(v => v);
-  if (!website && !hasSocial) {
-    toast("Ingresa al menos el sitio web para analizar", "error"); return;
+  const hasSocial = Object.values(socialUrls).some(x => x);
+  // Also check if there's a loaded manual
+  const manualLoaded = document.getElementById("manual-loaded")?.style.display !== "none";
+  if (!website && !hasSocial && !manualLoaded) {
+    toast("Ingresa el sitio web, redes sociales o carga el manual de marca primero", "error"); return;
   }
   const btn = document.getElementById("btn-analyze");
   btn.disabled = true;
-  btn.innerHTML = "<span>⏳</span> Analizando con Claude...";
+  btn.innerHTML = "<span>⏳</span> Analizando y guardando...";
   document.getElementById("insights-panel").style.display = "none";
   try {
     const r = await fetch(`/api/brands/${currentBrandId}/analyze`, {
@@ -2236,26 +2240,28 @@ async function analyzeWithAI() {
     });
     const d = await r.json();
     if (!d.success) { toast("Error: " + d.error, "error"); return; }
-    _pendingInsights = d.insights;
-    // Show summary
+
+    // Auto-apply to form (data already saved in DB by server)
+    if (d.brand) applyBrandToForm(d.brand);
+
+    // Show brief summary panel
+    const ins = d.insights || {};
     const panel = document.getElementById("insights-panel");
     const summary = document.getElementById("insights-summary");
-    const ins = d.insights;
+    const resLine = d.research_applied ? "\n\n✓ Investigación competitiva completada y guardada" : "";
     summary.textContent =
+      `✓ ANÁLISIS COMPLETADO — datos guardados automáticamente\n\n` +
       `NOMBRE: ${ins.name || "—"}\n` +
       `TAGLINE: ${ins.tagline || "—"}\n` +
       `INDUSTRIA: ${ins.industry || "—"}\n` +
-      `GEOGRAFÍA: ${ins.geography || "—"}\n\n` +
-      `DESCRIPCIÓN:\n${ins.description || "—"}\n\n` +
-      `MISIÓN:\n${ins.mission || "—"}\n\n` +
-      `VALORES: ${(ins.values||[]).join(", ")}\n\n` +
-      `PROPUESTA ÚNICA:\n${ins.positioning?.usp || "—"}\n\n` +
-      `DIFERENCIADORES:\n${(ins.positioning?.differentiators||[]).map(d=>`• ${d}`).join("\n")}\n\n` +
-      `VOZ: ${(ins.voice?.adjectives||[]).join(", ")}\n\n` +
-      `${ins.insights_summary ? "INSIGHTS CLAVE:\n" + ins.insights_summary : ""}`;
+      `DESCRIPCIÓN: ${ins.description || "—"}\n\n` +
+      `PROPUESTA ÚNICA: ${ins.positioning?.usp || "—"}\n` +
+      `VOZ: ${(ins.voice?.adjectives||[]).join(", ")}` +
+      resLine;
     panel.style.display = "block";
     panel.scrollIntoView({ behavior: "smooth", block: "start" });
-    toast("✓ Análisis completado — revisa los insights", "success");
+    const resMsg = d.research_applied ? " + investigación profunda" : "";
+    toast(`✓ Análisis${resMsg} completado y guardado`, "success");
   } catch (e) {
     toast("Error de red: " + e.message, "error");
   } finally {
@@ -2264,71 +2270,62 @@ async function analyzeWithAI() {
   }
 }
 
-function applyInsights() {
-  if (!_pendingInsights) return;
-  const i = _pendingInsights;
-  // Apply all extractable fields to form
-  if (i.name)        { v("f-name", i.name); updateTopBar(); }
-  if (i.tagline)     v("f-tagline", i.tagline);
-  if (i.description) v("f-description", i.description);
-  if (i.mission)     v("f-mission", i.mission);
-  if (i.industry)    v("f-industry", i.industry);
-  if (i.geography)   v("f-geography", i.geography);
-  if (i.values?.length)   setTags("values", i.values);
-  if (i.hashtags?.length) setTags("hashtags", i.hashtags);
-  if (i.voice) {
-    if (i.voice.adjectives?.length) setTags("voice_adjectives", i.voice.adjectives);
-    if (i.voice.avoid)   v("f-voice-avoid", i.voice.avoid);
-    if (i.voice.formality != null) {
-      const slider = document.getElementById("f-formality");
-      if (slider) { slider.value = i.voice.formality; if (slider.oninput) slider.oninput(); }
-    }
-    if (i.voice.emoji_use) {
-      document.querySelectorAll('[name=emoji_use]').forEach(r => r.checked = r.value === i.voice.emoji_use);
-    }
+function applyBrandToForm(brand) {
+  if (!brand) return;
+  if (brand.name)        { v("f-name", brand.name); updateTopBar(); }
+  if (brand.tagline)     v("f-tagline", brand.tagline);
+  if (brand.description) v("f-description", brand.description);
+  if (brand.mission)     v("f-mission", brand.mission);
+  if (brand.industry)    v("f-industry", brand.industry);
+  if (brand.geography)   v("f-geography", brand.geography);
+  if (brand.values?.length)   setTags("values", brand.values);
+  if (brand.hashtags?.length) setTags("hashtags", brand.hashtags);
+  const voice = brand.voice || {};
+  if (voice.adjectives?.length) setTags("voice_adjectives", voice.adjectives);
+  if (voice.avoid)   v("f-voice-avoid", voice.avoid);
+  if (voice.formality != null) {
+    const slider = document.getElementById("f-formality");
+    if (slider) { slider.value = voice.formality; if (slider.oninput) slider.oninput(); }
   }
-  if (i.positioning) {
-    if (i.positioning.usp)           v("f-usp", i.positioning.usp);
-    if (i.positioning.differentiators?.length) setTags("differentiators", i.positioning.differentiators);
-    // Competitors
-    if (i.positioning.competitors?.length) {
-      i.positioning.competitors.forEach((comp, idx) => {
-        const nameEl = document.getElementById(`comp${idx}-name`);
-        const weakEl = document.getElementById(`comp${idx}-weakness`);
-        if (nameEl) nameEl.value = comp.name || "";
-        if (weakEl) weakEl.value = comp.weakness || "";
-      });
-    }
+  if (voice.emoji_use) {
+    document.querySelectorAll('[name=emoji_use]').forEach(r => r.checked = r.value === voice.emoji_use);
   }
-  if (i.audience) {
-    if (i.audience.geography) v("f-audience-geo", i.audience.geography);
-    if (i.audience.language) {
-      document.querySelectorAll('[name=lang]').forEach(r => r.checked = r.value === i.audience.language);
-    }
-    if (i.audience.personas?.length) {
-      i.audience.personas.forEach((p, idx) => {
-        if (idx > 2) return;
-        const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ""; };
-        set(`p${idx}-name`, p.name);
-        set(`p${idx}-age`, p.age);
-        set(`p${idx}-occ`, p.occupation);
-        set(`p${idx}-pain`, p.pain);
-        set(`p${idx}-goal`, p.goal);
-      });
-    }
-  }
-  if (i.content_lines?.length) {
-    i.content_lines.forEach((line, idx) => {
-      const nameEl  = document.getElementById(`cl${idx}-name`);
-      const pctEl   = document.getElementById(`cl${idx}-pct`);
-      const descEl  = document.getElementById(`cl${idx}-desc`);
-      if (nameEl) nameEl.value = line.name || "";
-      if (pctEl)  pctEl.value  = Math.round((line.percentage || 0) * 100);
-      if (descEl) descEl.value = line.description || "";
+  const pos = brand.positioning || {};
+  if (pos.usp)                    v("f-usp", pos.usp);
+  if (pos.differentiators?.length) setTags("differentiators", pos.differentiators);
+  if (pos.competitors?.length) {
+    pos.competitors.forEach((comp, idx) => {
+      const nameEl = document.getElementById(`comp${idx}-name`);
+      const weakEl = document.getElementById(`comp${idx}-weakness`);
+      if (nameEl) nameEl.value = comp.name || "";
+      if (weakEl) weakEl.value = comp.weakness || "";
     });
   }
-  document.getElementById("insights-panel").style.display = "none";
-  toast("✓ Campos aplicados — revisa y guarda la marca", "success");
+  const aud = brand.audience || {};
+  if (aud.geography) v("f-audience-geo", aud.geography);
+  if (aud.language) {
+    document.querySelectorAll('[name=lang]').forEach(r => r.checked = r.value === aud.language);
+  }
+  if (aud.personas?.length) {
+    aud.personas.forEach((p, idx) => {
+      if (idx > 2) return;
+      const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ""; };
+      set(`p${idx}-name`, p.name);
+      set(`p${idx}-age`, p.age);
+      set(`p${idx}-occ`, p.occupation);
+      set(`p${idx}-pain`, p.pain);
+      set(`p${idx}-goal`, p.goal);
+    });
+  }
+  const lines = brand.content_lines || [];
+  lines.forEach((line, idx) => {
+    const nameEl = document.getElementById(`cl${idx}-name`);
+    const pctEl  = document.getElementById(`cl${idx}-pct`);
+    const descEl = document.getElementById(`cl${idx}-desc`);
+    if (nameEl) nameEl.value = line.name || "";
+    if (pctEl)  pctEl.value  = Math.round((line.percentage || 0) * 100);
+    if (descEl) descEl.value = line.description || "";
+  });
 }
 
 // ── Color sync ────────────────────────────────────────────────────────────
