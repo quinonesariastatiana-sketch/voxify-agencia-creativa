@@ -674,35 +674,26 @@ function resetBtn() {
 }
 
 function applyResearchToForm(r) {
-  // Hashtags — merge all groups
-  const allTags = Object.values(r.hashtags || {}).flat().slice(0,20);
+  // Hashtags — flat list
+  const allTags = (Array.isArray(r.hashtags) ? r.hashtags : []).slice(0, 20);
   addTagsFromArray('hashtags-wrap', allTags);
 
-  // Competitive advantages → values
-  const advValues = (r.competitive_advantages || []).map(a => a.advantage).slice(0,4);
-  addTagsFromArray('values-wrap', advValues);
+  // Differentiators → values
+  addTagsFromArray('values-wrap', (r.differentiators || []).slice(0, 4));
 
-  // Positioning
-  if (r.positioning && !document.getElementById('f-positioning').value) {
-    document.getElementById('f-positioning').value = r.positioning;
+  // Unique value proposition → positioning
+  if (r.unique_value_proposition && !document.getElementById('f-positioning').value) {
+    document.getElementById('f-positioning').value = r.unique_value_proposition;
   }
 
-  // Tone
-  if (r.voice?.tone && !document.getElementById('f-tone').value) {
-    document.getElementById('f-tone').value = r.voice.tone;
+  // Brand tone
+  if (r.brand_tone && !document.getElementById('f-tone').value) {
+    document.getElementById('f-tone').value = r.brand_tone;
   }
 
-  // Do/dont
-  if (r.voice?.do) addTagsFromArray('do-wrap', r.voice.do.slice(0,3));
-  if (r.voice?.dont) addTagsFromArray('dont-wrap', r.voice.dont.slice(0,3));
-
-  // Audience pain points
-  const pains = r.audience?.primary?.pain_points || [];
-  if (pains.length && !document.getElementById('f-pain').value) {
-    document.getElementById('f-pain').value = pains.join('. ');
-  }
-  if (r.audience?.primary?.psychographics && !document.getElementById('f-interests').value) {
-    document.getElementById('f-interests').value = r.audience.primary.psychographics;
+  // Audience profile → interests
+  if (r.audience_profile && !document.getElementById('f-interests').value) {
+    document.getElementById('f-interests').value = r.audience_profile;
   }
 }
 
@@ -710,106 +701,74 @@ function renderResearch(r) {
   const el = document.getElementById('research-results');
   let html = '';
 
-  // Summary
-  if (r.research_summary) {
-    html += `<div class="summary-box"><p>${r.research_summary}</p></div>`;
+  // Unique value proposition
+  if (r.unique_value_proposition) {
+    html += `<div class="summary-box"><p>${r.unique_value_proposition}</p></div>`;
+  }
+
+  // Audience profile + brand tone
+  if (r.audience_profile || r.brand_tone) {
+    html += `<div class="r-section"><div class="r-section-title">👥 Audiencia y tono</div><div class="r-card">`;
+    if (r.audience_profile) html += `<div class="r-card-sub" style="margin-bottom:8px"><strong style="color:rgba(255,255,255,.7)">Audiencia:</strong> ${r.audience_profile}</div>`;
+    if (r.brand_tone)       html += `<div class="r-card-sub"><strong style="color:rgba(255,255,255,.7)">Tono:</strong> ${r.brand_tone}</div>`;
+    html += `</div></div>`;
   }
 
   // Competitors
   if (r.competitors?.length) {
-    html += `<div class="r-section">
-      <div class="r-section-title">🏆 Competidores (${r.competitors.length})</div>`;
+    html += `<div class="r-section"><div class="r-section-title">🏆 Competidores</div><div class="r-card">`;
     r.competitors.forEach(c => {
-      html += `<div class="r-card">
-        <div class="r-card-title">${c.name} <span style="font-size:10px;opacity:.6">${c.type}</span></div>
-        <div class="r-card-sub">${c.market_position}</div>
-        <div style="margin-top:6px">
-          ${(c.weaknesses||[]).slice(0,2).map(w => `<span class="r-tag" style="background:rgba(239,68,68,.15);color:#fca5a5">⚠ ${w}</span>`).join('')}
-        </div>
-      </div>`;
+      html += `<div style="padding:4px 0;border-bottom:1px solid rgba(255,255,255,.06);color:rgba(255,255,255,.8);font-size:12px">• ${c}</div>`;
     });
-    html += '</div>';
+    html += `</div></div>`;
   }
 
-  // Competitive advantages
-  if (r.competitive_advantages?.length) {
-    html += `<div class="r-section">
-      <div class="r-section-title">✨ Ventajas competitivas</div>`;
-    r.competitive_advantages.forEach(a => {
-      html += `<div class="r-card">
-        <div class="r-card-title">${a.advantage}</div>
-        <div class="r-card-sub">${a.explanation}</div>
-      </div>`;
+  // Differentiators
+  if (r.differentiators?.length) {
+    html += `<div class="r-section"><div class="r-section-title">✨ Diferenciadores</div><div class="r-card">`;
+    r.differentiators.forEach(d => {
+      html += `<div style="padding:4px 0;border-bottom:1px solid rgba(255,255,255,.06);color:rgba(255,255,255,.8);font-size:12px">• ${d}</div>`;
     });
-    html += '</div>';
+    html += `</div></div>`;
   }
 
   // Hashtags
-  if (r.hashtags) {
-    html += `<div class="r-section"><div class="r-section-title">📌 Hashtags por categoría</div>`;
-    Object.entries(r.hashtags).forEach(([cat, tags]) => {
-      if (!tags?.length) return;
+  if (Array.isArray(r.hashtags) && r.hashtags.length) {
+    html += `<div class="r-section"><div class="r-section-title">📌 Hashtags (${r.hashtags.length})</div>`;
+    html += r.hashtags.map(t => `<span class="r-tag">${t}</span>`).join('');
+    html += `<br><button class="r-accept-btn" style="margin-top:10px" onclick="acceptAllHashtags()">✓ Aplicar todos los hashtags</button>`;
+    html += `</div>`;
+  }
+
+  // KPIs
+  const kpiLabels = [['kpi_30_days','30 días'],['kpi_60_days','60 días'],['kpi_90_days','90 días']];
+  const hasKpis = kpiLabels.some(([k]) => r[k]?.length);
+  if (hasKpis) {
+    html += `<div class="r-section"><div class="r-section-title">📊 KPIs por fase</div>`;
+    kpiLabels.forEach(([key, label]) => {
+      if (!r[key]?.length) return;
       html += `<div style="margin-bottom:10px">
-        <div style="color:rgba(255,255,255,.5);font-size:10px;font-weight:700;margin-bottom:5px">${cat.toUpperCase()}</div>
-        ${tags.map(t => `<span class="r-tag">${t}</span>`).join('')}
-      </div>`;
+        <div style="color:rgba(255,255,255,.5);font-size:10px;font-weight:700;margin-bottom:5px">${label.toUpperCase()}</div>`;
+      r[key].forEach(k => {
+        html += `<div style="padding:3px 0;color:rgba(255,255,255,.75);font-size:12px">• ${k}</div>`;
+      });
+      html += `</div>`;
     });
-    html += `<button class="r-accept-btn" onclick="acceptAllHashtags()">✓ Aplicar todos los hashtags</button>`;
-    html += '</div>';
+    html += `</div>`;
   }
 
-  // Content pillars
-  if (r.content_pillars?.length) {
-    html += `<div class="r-section">
-      <div class="r-section-title">📐 Pilares de contenido</div>`;
-    r.content_pillars.forEach(p => {
-      html += `<div class="r-card">
-        <div class="r-card-title">${p.pillar} <span style="font-size:10px;opacity:.5">${p.frequency||''}</span></div>
-        <div class="r-card-sub">${p.description}</div>
-        ${p.examples?.length ? '<div style="margin-top:4px">'+p.examples.slice(0,1).map(e=>`<span class="r-tag">${e}</span>`).join('')+'</div>' : ''}
+  // Strategy phases
+  if (r.strategy_phases) {
+    const phases = r.strategy_phases;
+    html += `<div class="r-section"><div class="r-section-title">🗺 Fases de estrategia</div>`;
+    [['phase_1','Fase 1 — Días 1-30'],['phase_2','Fase 2 — Días 31-60'],['phase_3','Fase 3 — Días 61-90']].forEach(([key, label]) => {
+      if (!phases[key]) return;
+      html += `<div class="r-card" style="margin-bottom:8px">
+        <div class="r-card-title">${label}</div>
+        <div class="r-card-sub">${phases[key]}</div>
       </div>`;
     });
-    html += '</div>';
-  }
-
-  // Market insights
-  if (r.market_insights?.length) {
-    html += `<div class="r-section">
-      <div class="r-section-title">📊 Insights de mercado</div>`;
-    r.market_insights.forEach(ins => {
-      const badgeCls = ins.type === 'tendencia' ? 'badge-trend' : ins.type === 'oportunidad' ? 'badge-opp' : 'badge-threat';
-      const icon = ins.type === 'tendencia' ? '📈' : ins.type === 'oportunidad' ? '🚀' : '⚠️';
-      html += `<div class="r-insight">
-        <span class="r-insight-badge ${badgeCls}">${icon} ${ins.type}</span>
-        <div class="r-insight-text">${ins.insight}</div>
-      </div>`;
-    });
-    html += '</div>';
-  }
-
-  // Tagline suggestions
-  if (r.tagline_suggestions?.length) {
-    html += `<div class="r-section">
-      <div class="r-section-title">💬 Taglines sugeridos</div>
-      <div class="r-card">`;
-    r.tagline_suggestions.forEach(t => {
-      html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.07)">
-        <span style="color:rgba(255,255,255,.8);font-size:12px">${t}</span>
-        <button style="background:none;border:none;color:var(--aqua);font-size:11px;cursor:pointer;font-weight:700"
-          onclick="document.getElementById('f-tagline').value='${t.replace(/'/g,"\\'")}';toast('✓ Tagline aplicado')">Usar</button>
-      </div>`;
-    });
-    html += '</div></div>';
-  }
-
-  // Missing data
-  if (r.missing_data?.length) {
-    html += `<div class="r-section">
-      <div class="r-section-title">⚠️ Información que falta</div>
-      <div class="r-card">
-        ${r.missing_data.map(m => `<div style="color:rgba(255,255,255,.6);font-size:12px;padding:3px 0">• ${m}</div>`).join('')}
-      </div>
-    </div>`;
+    html += `</div>`;
   }
 
   el.innerHTML = html;
@@ -817,7 +776,7 @@ function renderResearch(r) {
 
 function acceptAllHashtags() {
   if (!researchData?.hashtags) return;
-  const all = Object.values(researchData.hashtags).flat();
+  const all = Array.isArray(researchData.hashtags) ? researchData.hashtags : Object.values(researchData.hashtags).flat();
   addTagsFromArray('hashtags-wrap', all);
   toast('✓ Hashtags aplicados al formulario');
 }
