@@ -24,6 +24,54 @@ def _client() -> anthropic.Anthropic:
     return _CLIENT
 
 
+def _extract_json(raw: str) -> dict:
+    """
+    Robustly extract a JSON object from Claude's response.
+    Handles: code fences, leading/trailing text, truncated responses.
+    """
+    # Strip code fences
+    if "```" in raw:
+        parts = raw.split("```")
+        for part in parts[1::2]:  # odd parts = inside fences
+            cleaned = part.lstrip("json").strip()
+            if cleaned.startswith("{"):
+                raw = cleaned
+                break
+
+    # Find the outermost { ... } block
+    start = raw.find("{")
+    if start == -1:
+        raise json.JSONDecodeError("No JSON object found", raw, 0)
+
+    # Walk to find the matching closing brace (handles nested objects)
+    depth = 0
+    end = start
+    in_string = False
+    escape = False
+    for i, ch in enumerate(raw[start:], start):
+        if escape:
+            escape = False
+            continue
+        if ch == "\\" and in_string:
+            escape = True
+            continue
+        if ch == '"':
+            in_string = not in_string
+            continue
+        if in_string:
+            continue
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                end = i
+                break
+
+    candidate = raw[start:end + 1]
+    return json.loads(candidate)
+
+
 def research_brand(brand_data: dict) -> dict:
     """
     Run deep competitive and market research for a brand.
@@ -152,20 +200,15 @@ Devuelve ÚNICAMENTE un JSON válido con esta estructura exacta:
     try:
         resp = _client().messages.create(
             model="claude-opus-4-8",
-            max_tokens=4000,
+            max_tokens=8000,
             messages=[{"role": "user", "content": prompt}],
         )
         raw = resp.content[0].text.strip()
-        if "```" in raw:
-            raw = raw.split("```")[1]
-            if raw.startswith("json"):
-                raw = raw[4:]
-            raw = raw.rsplit("```", 1)[0]
-        result = json.loads(raw.strip())
+        result = _extract_json(raw)
         result["researched_at"] = datetime.utcnow().isoformat()
         return {"success": True, "research": result}
     except json.JSONDecodeError as e:
-        logger.error(f"[research] JSON parse error: {e}")
+        logger.error(f"[research] JSON parse error: {e}\nRaw (first 500): {raw[:500] if 'raw' in dir() else '?'}")
         return {"success": False, "error": f"Error procesando respuesta: {e}"}
     except Exception as e:
         logger.error(f"[research] Error: {e}")

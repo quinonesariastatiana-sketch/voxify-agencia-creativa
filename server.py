@@ -71,6 +71,44 @@ STATUS_LABELS = {
 }
 
 
+def _extract_json(raw: str) -> dict:
+    """Robustly extract a JSON object from Claude's response (handles code fences and leading text)."""
+    if "```" in raw:
+        parts = raw.split("```")
+        for part in parts[1::2]:
+            cleaned = part.lstrip("json").strip()
+            if cleaned.startswith("{"):
+                raw = cleaned
+                break
+    start = raw.find("{")
+    if start == -1:
+        raise json.JSONDecodeError("No JSON object found", raw, 0)
+    depth = 0
+    end = start
+    in_string = False
+    escape = False
+    for i, ch in enumerate(raw[start:], start):
+        if escape:
+            escape = False
+            continue
+        if ch == "\\" and in_string:
+            escape = True
+            continue
+        if ch == '"':
+            in_string = not in_string
+            continue
+        if in_string:
+            continue
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                end = i
+                break
+    return json.loads(raw[start:end + 1])
+
+
 def post_to_dict(row):
     keys = ["id", "platform", "content_type", "content", "image_url", "scheduled_date",
             "status", "external_post_id", "error_message", "created_at", "published_at",
@@ -356,12 +394,7 @@ Extrae la información real del manual. Si algo no está disponible, infiere val
             messages=[{"role": "user", "content": prompt}],
         )
         raw = response.content[0].text.strip()
-        if "```" in raw:
-            raw = raw.split("```")[1]
-            if raw.startswith("json"):
-                raw = raw[4:]
-            raw = raw.rsplit("```", 1)[0]
-        insights = json.loads(raw.strip())
+        insights = _extract_json(raw)
         analysis_result = {"success": True, "insights": insights}
 
         # Apply insights to brand
@@ -501,12 +534,7 @@ Extrae la información real de los recursos. Si algo no está disponible, infier
             messages=[{"role": "user", "content": prompt}],
         )
         raw = response.content[0].text.strip()
-        if "```" in raw:
-            raw = raw.split("```")[1]
-            if raw.startswith("json"):
-                raw = raw[4:]
-            raw = raw.rsplit("```", 1)[0]
-        insights = json.loads(raw.strip())
+        insights = _extract_json(raw)
     except json.JSONDecodeError as e:
         return jsonify({"success": False, "error": f"JSON inválido en respuesta de Claude: {e}"}), 500
     except Exception as e:
@@ -710,11 +738,7 @@ Genera entre 4 y 7 sugerencias, ordenadas de mayor a menor impacto."""
             messages=[{"role": "user", "content": prompt}],
         )
         raw = response.content[0].text.strip()
-        if "```" in raw:
-            raw = raw.split("```")[1]
-            if raw.startswith("json"):
-                raw = raw[4:]
-        result = json.loads(raw)
+        result = _extract_json(raw)
         # Persist suggestions
         db.save_campaign_suggestions(brand_id, month, year, result.get("suggestions", []))
         return jsonify({"success": True, "evaluation": result})
