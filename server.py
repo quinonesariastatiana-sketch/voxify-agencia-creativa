@@ -71,44 +71,6 @@ STATUS_LABELS = {
 }
 
 
-def _extract_json(raw: str) -> dict:
-    """Robustly extract a JSON object from Claude's response (handles code fences and leading text)."""
-    if "```" in raw:
-        parts = raw.split("```")
-        for part in parts[1::2]:
-            cleaned = part.lstrip("json").strip()
-            if cleaned.startswith("{"):
-                raw = cleaned
-                break
-    start = raw.find("{")
-    if start == -1:
-        raise json.JSONDecodeError("No JSON object found", raw, 0)
-    depth = 0
-    end = start
-    in_string = False
-    escape = False
-    for i, ch in enumerate(raw[start:], start):
-        if escape:
-            escape = False
-            continue
-        if ch == "\\" and in_string:
-            escape = True
-            continue
-        if ch == '"':
-            in_string = not in_string
-            continue
-        if in_string:
-            continue
-        if ch == "{":
-            depth += 1
-        elif ch == "}":
-            depth -= 1
-            if depth == 0:
-                end = i
-                break
-    return json.loads(raw[start:end + 1])
-
-
 def post_to_dict(row):
     keys = ["id", "platform", "content_type", "content", "image_url", "scheduled_date",
             "status", "external_post_id", "error_message", "created_at", "published_at",
@@ -337,70 +299,19 @@ def upload_manual(brand_id):
     reload_from_db(db)
     _agents.pop(brand_id, None)
 
-    # ── AUTO-PIPELINE: analyze + deep research ───────────────────────────────
-    analysis_result = {}
-    research_result = {}
-    import anthropic as _anthropic
-    from config.settings import ANTHROPIC_API_KEY, AGENT_MODEL
+    # ── AUTO-PIPELINE: analyze + deep research (tool use — no JSON parsing) ───
+    from tools.brand_researcher import (
+        analyze_brand_resources, research_brand as deep_research, apply_research_to_brand
+    )
+    from config.settings import AGENT_MODEL
 
-    brand_name = brand.get("name", brand_id)
-    context = f"== MANUAL / GUIDELINES DE MARCA ==\n{text[:8000]}"
+    brand_name    = brand.get("name", brand_id)
+    context       = f"== MANUAL / GUIDELINES DE MARCA ==\n{text[:8000]}"
+    analysis_result  = analyze_brand_resources(brand_name, context, model=AGENT_MODEL)
+    research_result  = {"success": False}
 
-    prompt = f"""Analiza el manual de marca "{brand_name}" y extrae toda la información relevante.
-
-RECURSOS DISPONIBLES:
-{context}
-
-TAREA: Devuelve ÚNICAMENTE un JSON válido con esta estructura (sin texto antes ni después del JSON):
-{{
-  "name": "nombre oficial de la marca",
-  "tagline": "slogan o tagline principal",
-  "description": "descripción clara de qué hace la marca y a quién sirve (2-3 oraciones)",
-  "mission": "misión o propósito de la marca",
-  "industry": "industria o sector",
-  "geography": "ubicación geográfica o mercado objetivo",
-  "values": ["valor1", "valor2", "valor3"],
-  "hashtags": ["#hashtag1", "#hashtag2"],
-  "voice": {{
-    "adjectives": ["adjetivo1", "adjetivo2", "adjetivo3"],
-    "avoid": "qué NO hacer en comunicación: palabras prohibidas, tono a evitar",
-    "formality": 0.4,
-    "emoji_use": "ninguno|moderado|frecuente"
-  }},
-  "positioning": {{
-    "usp": "propuesta única de valor — qué hace diferente a esta marca de todas las demás",
-    "competitors": [{{"name": "competidor", "weakness": "su debilidad principal"}}],
-    "differentiators": ["diferenciador1", "diferenciador2"]
-  }},
-  "audience": {{
-    "personas": [{{"name": "nombre del perfil", "age": "rango de edad", "occupation": "ocupación", "pain": "problema principal", "goal": "qué busca"}}],
-    "language": "es|en|both",
-    "channels": ["instagram", "facebook"],
-    "geography": "descripción del público por ubicación"
-  }},
-  "content_lines": [
-    {{"name": "nombre del pilar", "percentage": 0.30, "description": "qué cubre este pilar"}}
-  ],
-  "insights_summary": "resumen de 3-5 puntos clave que aprendiste sobre esta marca para el agente creativo"
-}}
-
-Extrae la información real del manual. Si algo no está disponible, infiere valores razonables del contexto."""
-
-    try:
-        client = _anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
-        response = client.messages.create(
-            model=AGENT_MODEL,
-            max_tokens=6000,
-            messages=[
-                {"role": "user", "content": prompt},
-                {"role": "assistant", "content": "{"},
-            ],
-        )
-        raw = "{" + response.content[0].text
-        insights = json.loads(raw)
-        analysis_result = {"success": True, "insights": insights}
-
-        # Apply insights to brand
+    if analysis_result.get("success"):
+        insights = analysis_result["insights"]
         for field in ("name", "tagline", "description", "mission", "industry",
                       "geography", "values", "hashtags", "voice", "audience",
                       "positioning", "content_lines"):
@@ -408,25 +319,18 @@ Extrae la información real del manual. Si algo no está disponible, infiere val
                 brand[field] = insights[field]
         if insights.get("insights_summary"):
             brand["research_summary"] = insights["insights_summary"]
-
         db.save_brand(brand)
         reload_from_db(db)
         _agents.pop(brand_id, None)
-    except Exception as e:
-        analysis_result = {"success": False, "error": str(e)}
 
-    # Deep research after insights saved
-    try:
-        from tools.brand_researcher import research_brand as deep_research, apply_research_to_brand
-        brand = db.get_brand_config(brand_id) or brand
-        research_result = deep_research(brand)
-        if research_result.get("success"):
-            brand = apply_research_to_brand(brand, research_result["research"])
-            db.save_brand(brand)
-            reload_from_db(db)
-            _agents.pop(brand_id, None)
-    except Exception as e:
-        research_result = {"success": False, "error": str(e)}
+    # Deep research
+    brand = db.get_brand_config(brand_id) or brand
+    research_result = deep_research(brand)
+    if research_result.get("success"):
+        brand = apply_research_to_brand(brand, research_result["research"])
+        db.save_brand(brand)
+        reload_from_db(db)
+        _agents.pop(brand_id, None)
 
     return jsonify({
         "success": True,
@@ -442,25 +346,24 @@ Extrae la información real del manual. Si algo no está disponible, infiere val
 @app.route("/api/brands/<brand_id>/analyze", methods=["POST"])
 def analyze_brand(brand_id):
     """
-    Analyze brand resources (website, manual, social) with Claude,
-    auto-save extracted insights, then automatically run deep research.
-    All saved to DB without manual steps required.
+    Analyze brand resources (website, manual, social) with Claude tool use,
+    auto-save insights, then auto-trigger deep research. No JSON parsing needed.
     """
-    import anthropic as _anthropic
-    from config.settings import ANTHROPIC_API_KEY, AGENT_MODEL
+    from tools.brand_researcher import (
+        analyze_brand_resources, research_brand as deep_research, apply_research_to_brand
+    )
+    from config.settings import AGENT_MODEL
 
-    data = request.json or {}
+    data        = request.json or {}
     website_url = data.get("website_url", "").strip()
     social_urls = data.get("social_urls", {})
     manual_text = data.get("manual_text", "")
     brand_name  = data.get("brand_name", brand_id)
 
-    # Load existing brand config from DB
     brand = db.get_brand_config(brand_id) or {"id": brand_id, "name": brand_name}
 
-    # Gather raw content from each source
+    # Gather sources
     sources = []
-
     if website_url:
         try:
             from bs4 import BeautifulSoup
@@ -478,7 +381,7 @@ def analyze_brand(brand_id):
             sources.append(f"== {platform.upper()} ==\nURL: {url.strip()}")
 
     if manual_text:
-        sources.append(f"== MANUAL / GUIDELINES DE MARCA ==\n{manual_text[:6000]}")
+        sources.append(f"== MANUAL / GUIDELINES ==\n{manual_text[:6000]}")
 
     stored_manual = brand.get("manual_text_preview", "")
     if stored_manual and not manual_text:
@@ -489,91 +392,36 @@ def analyze_brand(brand_id):
 
     context = "\n\n".join(sources)
 
-    prompt = f"""Analiza los siguientes recursos de la marca "{brand_name}" y extrae toda la información relevante.
+    # ── Phase 1: extract insights via tool use (no JSON parsing) ────────────
+    analysis_result = analyze_brand_resources(brand_name, context, model=AGENT_MODEL)
+    insights = {}
 
-RECURSOS DISPONIBLES:
-{context}
+    if analysis_result.get("success"):
+        insights = analysis_result["insights"]
+        for field in ("name", "tagline", "description", "mission", "industry",
+                      "geography", "values", "hashtags", "voice", "audience",
+                      "positioning", "content_lines"):
+            if insights.get(field):
+                brand[field] = insights[field]
+        if insights.get("insights_summary"):
+            brand["research_summary"] = insights["insights_summary"]
+        if website_url:
+            brand["website_url"] = website_url
+        db.save_brand(brand)
+        reload_from_db(db)
+        _agents.pop(brand_id, None)
+    else:
+        return jsonify({"success": False, "error": analysis_result.get("error", "Error en análisis")}), 500
 
-TAREA: Devuelve ÚNICAMENTE un JSON válido con esta estructura (sin texto antes ni después del JSON):
-{{
-  "name": "nombre oficial de la marca",
-  "tagline": "slogan o tagline principal",
-  "description": "descripción clara de qué hace la marca y a quién sirve (2-3 oraciones)",
-  "mission": "misión o propósito de la marca",
-  "industry": "industria o sector",
-  "geography": "ubicación geográfica o mercado objetivo",
-  "values": ["valor1", "valor2", "valor3"],
-  "hashtags": ["#hashtag1", "#hashtag2"],
-  "voice": {{
-    "adjectives": ["adjetivo1", "adjetivo2", "adjetivo3"],
-    "avoid": "qué NO hacer en comunicación: palabras prohibidas, tono a evitar",
-    "formality": 0.4,
-    "emoji_use": "ninguno|moderado|frecuente"
-  }},
-  "positioning": {{
-    "usp": "propuesta única de valor — qué hace diferente a esta marca de todas las demás",
-    "competitors": [{{"name": "competidor", "weakness": "su debilidad principal"}}],
-    "differentiators": ["diferenciador1", "diferenciador2"]
-  }},
-  "audience": {{
-    "personas": [{{"name": "nombre del perfil", "age": "rango de edad", "occupation": "ocupación", "pain": "problema principal", "goal": "qué busca"}}],
-    "language": "es|en|both",
-    "channels": ["instagram", "facebook"],
-    "geography": "descripción del público por ubicación"
-  }},
-  "content_lines": [
-    {{"name": "nombre del pilar", "percentage": 0.30, "description": "qué cubre este pilar"}}
-  ],
-  "insights_summary": "resumen de 3-5 puntos clave que aprendiste sobre esta marca para el agente creativo"
-}}
-
-Extrae la información real de los recursos. Si algo no está disponible, infiere valores razonables del contexto."""
-
-    try:
-        client = _anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
-        response = client.messages.create(
-            model=AGENT_MODEL,
-            max_tokens=6000,
-            messages=[
-                {"role": "user", "content": prompt},
-                {"role": "assistant", "content": "{"},
-            ],
-        )
-        raw = "{" + response.content[0].text
-        insights = json.loads(raw)
-    except json.JSONDecodeError as e:
-        return jsonify({"success": False, "error": f"JSON inválido en respuesta de Claude: {e}"}), 500
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
-
-    # ── AUTO-SAVE: apply insights to brand config ────────────────────────────
-    for field in ("name", "tagline", "description", "mission", "industry",
-                  "geography", "values", "hashtags", "voice", "audience",
-                  "positioning", "content_lines"):
-        if insights.get(field):
-            brand[field] = insights[field]
-    if insights.get("insights_summary"):
-        brand["research_summary"] = insights["insights_summary"]
-    if website_url:
-        brand["website_url"] = website_url
-
-    db.save_brand(brand)
-    reload_from_db(db)
-    _agents.pop(brand_id, None)
-
-    # ── AUTO-RESEARCH: deep competitive + market research ────────────────────
+    # ── Phase 2: deep competitive research via tool use ──────────────────────
     research_result = {"success": False}
-    try:
-        from tools.brand_researcher import research_brand as deep_research, apply_research_to_brand
-        research_result = deep_research(brand)
-        if research_result.get("success"):
-            brand = db.get_brand_config(brand_id) or brand
-            brand = apply_research_to_brand(brand, research_result["research"])
-            db.save_brand(brand)
-            reload_from_db(db)
-            _agents.pop(brand_id, None)
-    except Exception as e:
-        research_result = {"success": False, "error": str(e)}
+    brand = db.get_brand_config(brand_id) or brand
+    research_result = deep_research(brand)
+    if research_result.get("success"):
+        brand = apply_research_to_brand(brand, research_result["research"])
+        db.save_brand(brand)
+        reload_from_db(db)
+        _agents.pop(brand_id, None)
 
     return jsonify({
         "success": True,
@@ -736,20 +584,44 @@ Devuelve ÚNICAMENTE un JSON con esta estructura (sin texto antes ni después):
 }}
 Genera entre 4 y 7 sugerencias, ordenadas de mayor a menor impacto."""
 
+    _campaign_tool = {
+        "name": "save_campaign_evaluation",
+        "description": "Guarda la evaluación de la campaña mensual con sugerencias de mejora.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "campaign_score":      {"type": "number"},
+                "score_rationale":     {"type": "string"},
+                "revenue_estimate":    {"type": "string"},
+                "reach_estimate":      {"type": "string"},
+                "conversion_estimate": {"type": "string"},
+                "risks":               {"type": "array", "items": {"type": "string"}},
+                "suggestions": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id":         {"type": "string"},
+                            "category":   {"type": "string"},
+                            "title":      {"type": "string"},
+                            "problem":    {"type": "string"},
+                            "suggestion": {"type": "string"},
+                            "impact":     {"type": "string"},
+                            "effort":     {"type": "string"},
+                            "example":    {"type": "string"},
+                        },
+                        "required": ["id", "category", "title", "suggestion", "impact"],
+                    },
+                },
+            },
+            "required": ["campaign_score", "score_rationale", "suggestions"],
+        },
+    }
     try:
-        client = _anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
-        response = client.messages.create(
-            model=AGENT_MODEL,
-            max_tokens=3000,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        raw = response.content[0].text.strip()
-        result = _extract_json(raw)
-        # Persist suggestions
+        from tools.brand_researcher import _call_with_tool
+        result = _call_with_tool(prompt, _campaign_tool, model=AGENT_MODEL, max_tokens=4000)
         db.save_campaign_suggestions(brand_id, month, year, result.get("suggestions", []))
         return jsonify({"success": True, "evaluation": result})
-    except json.JSONDecodeError as e:
-        return jsonify({"success": False, "error": f"JSON inválido: {e}"}), 500
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
