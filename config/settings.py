@@ -20,7 +20,9 @@ VIDEO_ENABLED = bool(FAL_API_KEY)
 
 
 AGENT_MODEL = "claude-opus-4-8"
-DB_PATH = os.path.join(os.path.dirname(__file__), "..", "voxify.db")
+# On Railway: set DB_PATH=/data/voxify.db (persistent volume mounted at /data)
+# Locally: defaults to voxify-agent/voxify.db
+DB_PATH = os.environ.get("DB_PATH", os.path.join(os.path.dirname(__file__), "..", "voxify.db"))
 
 
 def validate_config():
