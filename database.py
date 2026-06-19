@@ -25,6 +25,45 @@ def _conn():
     return c
 
 
+def _apply_migrations(c):
+    """Add missing columns when upgrading from old schema."""
+    cols = {r[1] for r in c.execute("PRAGMA table_info(brands)").fetchall()}
+    if not cols:
+        return
+    new_cols = [
+        ("brand_values",             "TEXT",    "DEFAULT '[]'"),
+        ("mission",                  "TEXT",    "DEFAULT ''"),
+        ("positioning",              "TEXT",    "DEFAULT ''"),
+        ("strategy_phases",          "TEXT",    "DEFAULT '{}'"),
+        ("voice",                    "TEXT",    "DEFAULT '{}'"),
+        ("kpi_30_days",              "TEXT",    "DEFAULT '[]'"),
+        ("kpi_60_days",              "TEXT",    "DEFAULT '[]'"),
+        ("kpi_90_days",              "TEXT",    "DEFAULT '[]'"),
+        ("audience_profile",         "TEXT",    "DEFAULT ''"),
+        ("brand_tone",               "TEXT",    "DEFAULT ''"),
+        ("unique_value_proposition", "TEXT",    "DEFAULT ''"),
+        ("last_research",            "TEXT",    ""),
+        ("active",                   "INTEGER", "DEFAULT 1"),
+        ("instagram_account_id",     "TEXT",    "DEFAULT ''"),
+        ("facebook_page_id",         "TEXT",    "DEFAULT ''"),
+        ("meta_access_token",        "TEXT",    "DEFAULT ''"),
+        ("instagram_handle",         "TEXT",    "DEFAULT ''"),
+        ("geography",                "TEXT",    "DEFAULT 'United States'"),
+        ("color",                    "TEXT",    "DEFAULT '#635BFF'"),
+        ("logo_url",                 "TEXT",    "DEFAULT ''"),
+        ("website_url",              "TEXT",    "DEFAULT ''"),
+        ("differentiators",          "TEXT",    "DEFAULT '[]'"),
+        ("competitors",              "TEXT",    "DEFAULT '[]'"),
+        ("hashtags",                 "TEXT",    "DEFAULT '[]'"),
+    ]
+    for col_name, col_type, col_default in new_cols:
+        if col_name not in cols:
+            c.execute(f"ALTER TABLE brands ADD COLUMN {col_name} {col_type} {col_default}")
+    # Copy old `values` column → brand_values if upgrading
+    if "values" in cols and "brand_values" in cols:
+        c.execute('UPDATE brands SET brand_values = "values" WHERE brand_values IS NULL OR brand_values = \'[]\'')
+
+
 def init_db():
     with _conn() as c:
         c.executescript("""
@@ -97,6 +136,7 @@ def init_db():
             created_at TEXT DEFAULT (datetime('now'))
         );
         """)
+        _apply_migrations(c)
 
 
 def _load(row: dict) -> dict:
