@@ -390,11 +390,14 @@ Extrae la información real del manual. Si algo no está disponible, infiere val
         client = _anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
         response = client.messages.create(
             model=AGENT_MODEL,
-            max_tokens=4000,
-            messages=[{"role": "user", "content": prompt}],
+            max_tokens=6000,
+            messages=[
+                {"role": "user", "content": prompt},
+                {"role": "assistant", "content": "{"},
+            ],
         )
-        raw = response.content[0].text.strip()
-        insights = _extract_json(raw)
+        raw = "{" + response.content[0].text
+        insights = json.loads(raw)
         analysis_result = {"success": True, "insights": insights}
 
         # Apply insights to brand
@@ -530,11 +533,14 @@ Extrae la información real de los recursos. Si algo no está disponible, infier
         client = _anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
         response = client.messages.create(
             model=AGENT_MODEL,
-            max_tokens=4000,
-            messages=[{"role": "user", "content": prompt}],
+            max_tokens=6000,
+            messages=[
+                {"role": "user", "content": prompt},
+                {"role": "assistant", "content": "{"},
+            ],
         )
-        raw = response.content[0].text.strip()
-        insights = _extract_json(raw)
+        raw = "{" + response.content[0].text
+        insights = json.loads(raw)
     except json.JSONDecodeError as e:
         return jsonify({"success": False, "error": f"JSON inválido en respuesta de Claude: {e}"}), 500
     except Exception as e:

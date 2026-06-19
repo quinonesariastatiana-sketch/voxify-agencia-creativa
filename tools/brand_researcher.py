@@ -197,18 +197,29 @@ Devuelve ÚNICAMENTE un JSON válido con esta estructura exacta:
   "research_summary": "resumen ejecutivo de 3-4 oraciones con los hallazgos más importantes"
 }}"""
 
+    raw = ""
     try:
         resp = _client().messages.create(
             model="claude-opus-4-8",
             max_tokens=8000,
-            messages=[{"role": "user", "content": prompt}],
+            messages=[
+                {"role": "user", "content": prompt},
+                {"role": "assistant", "content": "{"},  # prefill — forces Claude to output pure JSON
+            ],
         )
-        raw = resp.content[0].text.strip()
-        result = _extract_json(raw)
+        raw = "{" + resp.content[0].text
+        result = json.loads(raw)
         result["researched_at"] = datetime.utcnow().isoformat()
         return {"success": True, "research": result}
     except json.JSONDecodeError as e:
-        logger.error(f"[research] JSON parse error: {e}\nRaw (first 500): {raw[:500] if 'raw' in dir() else '?'}")
+        logger.error(f"[research] JSON parse error: {e}\nRaw snippet around error: {raw[max(0,e.pos-120):e.pos+120]!r}")
+        # Fallback: try robust extraction in case prefill added surrounding text
+        try:
+            result = _extract_json(raw)
+            result["researched_at"] = datetime.utcnow().isoformat()
+            return {"success": True, "research": result}
+        except Exception:
+            pass
         return {"success": False, "error": f"Error procesando respuesta: {e}"}
     except Exception as e:
         logger.error(f"[research] Error: {e}")
