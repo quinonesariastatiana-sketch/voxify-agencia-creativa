@@ -54,12 +54,42 @@ class VoxifyCreativeDirector:
         final_response = ""
         active_tools = tools if tools is not None else ALL_TOOLS
 
+        # Build rich system context: base prompt + strategy + research + content lines + monthly plan
+        research_ctx = ""
+        if self.brand.get("research_summary"):
+            research_ctx += f"\n\n══ INVESTIGACIÓN DE MERCADO ══\n{self.brand['research_summary'][:2000]}"
+        market_insights = self.brand.get("market_insights", [])
+        if market_insights and isinstance(market_insights, list):
+            research_ctx += "\n\n══ INSIGHTS DE MERCADO ══\n" + "\n".join(f"• {i}" for i in market_insights[:10])
+
+        content_lines = self.brand.get("content_lines") or self.brand.get("content_pillars", [])
+        content_lines_ctx = ""
+        if content_lines:
+            content_lines_ctx = "\n\n══ PILARES DE CONTENIDO (respetar proporciones) ══\n"
+            for p in content_lines:
+                pct = p.get("percentage", 0)
+                if isinstance(pct, float) and pct <= 1:
+                    pct = int(pct * 100)
+                content_lines_ctx += f"• {p.get('name','?')} ({pct}%): {p.get('description','')}\n"
+
+        monthly_ctx = ""
+        if self.brand.get("monthly_plan"):
+            monthly_ctx = f"\n\n══ PLAN MENSUAL ACTIVO ══\n{self.brand['monthly_plan'][:1500]}"
+
+        full_system = (
+            self.brand["system_prompt"]
+            + "\n\n" + self.brand.get("strategy_90days", "")
+            + research_ctx
+            + content_lines_ctx
+            + monthly_ctx
+        )
+
         for iteration in range(max_iterations):
             with self.client.messages.stream(
                 model=AGENT_MODEL,
                 max_tokens=8096,
                 thinking={"type": "adaptive"},
-                system=self.brand["system_prompt"] + "\n\n" + self.brand["strategy_90days"],
+                system=full_system,
                 tools=active_tools,
                 messages=messages,
             ) as stream:
@@ -362,6 +392,7 @@ LINKEDIN — 8:00 AM ET (solo miércoles)
 
 ⚠️ REGLAS CRÍTICAS:
 - Guarda CADA post con save_content_to_calendar ANTES de pasar al siguiente
+- SIEMPRE pasa brand="{self.brand_id}" en cada llamada a save_content_to_calendar
 - NO publiques nada — solo genera y guarda para aprobación
 - LinkedIn NO lleva image_url
 - El contenido de IG y FB del mismo día debe ser diferente entre sí
@@ -373,8 +404,8 @@ LINKEDIN — 8:00 AM ET (solo miércoles)
         # Save weekly strategy record
         try:
             self.db.conn.execute(
-                "INSERT INTO weekly_strategy (week_number, year, phase, theme, analysis) VALUES (?,?,?,?,?)",
-                (week, today.year, phase, "weekly_run", result[:500]),
+                "INSERT INTO weekly_strategy (week_number, year, phase, theme, analysis, brand_id) VALUES (?,?,?,?,?,?)",
+                (week, today.year, phase, "weekly_run", result[:500], self.brand_id),
             )
             self.db.conn.commit()
         except Exception:
@@ -493,6 +524,11 @@ LINKEDIN — 8:00 AM ET (solo miércoles)
             for i, m in enumerate(real_videos[:10])
         )) if real_videos else ""
 
+        brand_name    = self.brand["name"]
+        brand_tagline = self.brand.get("tagline", "")
+        brand_industry = self.brand.get("industry", brand_name)
+        brand_hashtags = " ".join(self.brand.get("hashtags", [])[:5]) or f"#{brand_name.replace(' ','')}"
+
         # Build Stories block
         stories_block = ""
         if stories:
@@ -500,35 +536,35 @@ LINKEDIN — 8:00 AM ET (solo miércoles)
                 f"📱 STORY #{i+1} — {s['day']} 18:00 ET\n"
                 f"   scheduled_date: {s['slot']}\n"
                 f"   content_type: instagram_story | platform: instagram\n"
-                f"   image_url: elige la foto que mejor evoque el momento del café\n"
+                f"   image_url: elige la foto que mejor represente {brand_name}\n"
                 f"   content: máx 5 palabras o vacío — las Stories son 100% visuales\n\n"
                 for i, s in enumerate(stories)
             )
             stories_block = (
                 f"─── STORIES DE INSTAGRAM — {len(stories)} stories para generar ───\n"
-                "Usa fotos reales de la lista. Sin caption largo — máx 5 palabras.\n\n" + lines
+                f"Marca: {brand_name}. Usa fotos reales de la lista. Sin caption largo — máx 5 palabras.\n\n" + lines
             )
 
         # Build Reels block
         reels_block = ""
         if reels:
             if real_videos and VIDEO_ENABLED:
-                video_instr = "Hay videos reales — úsalos si encajan, si no usa generate_reel_video."
+                video_instr = f"Hay videos reales — úsalos si encajan, si no usa generate_reel_video."
             elif VIDEO_ENABLED:
-                video_instr = "Genera cada reel con generate_reel_video (escena visual del café, solo visual)."
+                video_instr = f"Genera cada reel con generate_reel_video (escena visual de {brand_name} — {brand_industry}, solo visual)."
             else:
                 video_instr = "VIDEO_ENABLED=false — guarda con image_url como Reel de foto."
             lines = "".join(
                 f"🎬 REEL #{i+1} — {r['day']} 18:00 ET\n"
                 f"   scheduled_date: {r['slot']}\n"
                 f"   content_type: instagram_reel | platform: instagram\n"
-                f"   caption: hook visual + valor de la marca + CTA + 15 hashtags de café\n"
+                f"   caption: hook visual + propuesta de valor de {brand_name} + CTA + 15 hashtags de la marca\n"
                 f"   video_url: {video_instr if i == 0 else '(ídem)'}\n\n"
                 for i, r in enumerate(reels)
             )
             reels_block = (
                 f"─── REELS EXTRA — {len(reels)} reels para generar ───\n"
-                f"{video_instr}\n\n" + lines
+                f"Marca: {brand_name} — {brand_tagline}\n{video_instr}\n\n" + lines
             )
 
         # Build Weekend block
@@ -541,20 +577,21 @@ LINKEDIN — 8:00 AM ET (solo miércoles)
                     block += (
                         f"   IG 09:00 → scheduled_date: {w['ig_slot']}\n"
                         f"            content_type: instagram_post | platform: instagram\n"
-                        f"            caption: tono cálido y relajado, invitación a disfrutar un café\n"
+                        f"            caption: tono cálido y relajado, conecta con la comunidad de {brand_name}\n"
                         f"            image_url: foto real de la lista\n"
                     )
                 if w["fb_free"]:
                     block += (
                         f"   FB 10:00 → scheduled_date: {w['fb_slot']}\n"
                         f"            content_type: facebook_post | platform: facebook\n"
-                        f"            message: versión adaptada a FB con pregunta al final\n"
+                        f"            message: versión FB con pregunta al final, voz de {brand_name}\n"
                         f"            image_url: misma foto que en IG\n"
                     )
                 lines.append(block)
             weekend_block = (
                 f"─── POSTS DE FIN DE SEMANA — {len(weekend_posts)} días ───\n"
-                "Sábados: mejor plan del fin de semana es un buen café. Domingos: pausa, reflexión.\n\n"
+                f"Sábados y domingos: contenido cálido y cercano de {brand_name}. "
+                f"Tono relajado, sin vender — conectar con la comunidad.\n\n"
                 + "\n".join(lines)
             )
 
@@ -582,7 +619,7 @@ FOTOS REALES DE LA MARCA (úsalas para Stories y fin de semana):
 
 REGLAS CRÍTICAS:
 • Guarda CADA post con save_content_to_calendar ANTES de pasar al siguiente
-• brand_id implícito: "{self.brand_id}" (no lo especifiques en el tool call)
+• SIEMPRE pasa brand="{self.brand_id}" en cada llamada a save_content_to_calendar
 • Usa imágenes DIFERENTES en cada post — no repitas la misma foto
 • IG y FB del mismo día: misma foto, texto nativo diferente para cada plataforma
 • Stories content = "" o máx 5 palabras — son visuales, no de texto
