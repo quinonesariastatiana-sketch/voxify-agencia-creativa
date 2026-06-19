@@ -18,22 +18,25 @@ from tools.analytics import ANALYTICS_TOOLS, execute_analytics_tool
 from tools.trends import TREND_TOOLS, execute_trend_tool
 from tools.competitor import COMPETITOR_TOOLS, execute_competitor_tool
 from tools.engagement import ENGAGEMENT_TOOLS, execute_engagement_tool
+from tools.meta_intelligence import META_INTELLIGENCE_TOOLS, execute_meta_intelligence_tool
 
 logger = logging.getLogger(__name__)
 
 ALL_TOOLS = (
-    ANALYTICS_TOOLS + TREND_TOOLS + COMPETITOR_TOOLS + ENGAGEMENT_TOOLS +
+    META_INTELLIGENCE_TOOLS + ANALYTICS_TOOLS + TREND_TOOLS +
+    COMPETITOR_TOOLS + ENGAGEMENT_TOOLS +
     CONTENT_TOOLS + MEDIA_TOOLS + SOCIAL_TOOLS
 )
 
 TOOL_DISPATCH = {
-    **{t["name"]: "analytics"  for t in ANALYTICS_TOOLS},
-    **{t["name"]: "trends"     for t in TREND_TOOLS},
-    **{t["name"]: "competitor" for t in COMPETITOR_TOOLS},
-    **{t["name"]: "engagement" for t in ENGAGEMENT_TOOLS},
-    **{t["name"]: "content"    for t in CONTENT_TOOLS},
-    **{t["name"]: "media"      for t in MEDIA_TOOLS},
-    **{t["name"]: "social"     for t in SOCIAL_TOOLS},
+    **{t["name"]: "meta_intelligence" for t in META_INTELLIGENCE_TOOLS},
+    **{t["name"]: "analytics"         for t in ANALYTICS_TOOLS},
+    **{t["name"]: "trends"            for t in TREND_TOOLS},
+    **{t["name"]: "competitor"        for t in COMPETITOR_TOOLS},
+    **{t["name"]: "engagement"        for t in ENGAGEMENT_TOOLS},
+    **{t["name"]: "content"           for t in CONTENT_TOOLS},
+    **{t["name"]: "media"             for t in MEDIA_TOOLS},
+    **{t["name"]: "social"            for t in SOCIAL_TOOLS},
 }
 
 
@@ -118,7 +121,11 @@ class VoxifyCreativeDirector:
                     logger.info(f"[{category}] {tool_name}")
 
                     try:
-                        if category == "analytics":
+                        if category == "meta_intelligence":
+                            result_str = execute_meta_intelligence_tool(
+                                tool_name, tool_input, self.db, self.brand
+                            )
+                        elif category == "analytics":
                             result_str = execute_analytics_tool(tool_name, tool_input, self.db)
                         elif category == "trends":
                             result_str = execute_trend_tool(tool_name, tool_input)
@@ -311,12 +318,28 @@ MISIÓN: Generar los 11 posts de la semana + posts adicionales con fotos reales
 {"+ posts adicionales — uno por cada foto real de la marca" if has_real_media else ""}
 ════════════════════════════════════════════════════════
 
-─── PASO 1: ANÁLISIS PREVIO ───
-Ejecuta estas 4 herramientas antes de crear cualquier contenido:
-• analyze_performance → qué funcionó, engagement promedio, mejor tipo de contenido
-• detect_trends con geo="US-FL" → tendencias actuales de la audiencia
-• analyze_competitors → brechas y ángulos de diferenciación disponibles
-• get_engagement_data → comentarios sin responder (alerta si hay urgentes)
+─── PASO 1: ANÁLISIS DE INTELIGENCIA ───
+Ejecuta ESTAS 7 herramientas en este orden ANTES de crear cualquier contenido:
+
+INTELIGENCIA META (nuevas — obligatorias):
+① sync_and_analyze_meta_performance → métricas reales de Meta: qué formato, día y hook generó
+   más engagement/saves/shares en las últimas 4 semanas
+② get_trending_hooks_and_hashtags → genera los 10 hooks scroll-stopping + 20 hashtags en
+   tendencia + 3 moods de música para Reels calibrados a {self.brand['name']} esta semana
+③ calibrate_weekly_strategy → calibración completa: qué ajustar en pilares, formato a
+   priorizar, hook conductor de la semana, hashtag cluster final de 20 tags, alertas
+
+ANÁLISIS ESTÁNDAR:
+④ analyze_performance → confirma qué tipo de contenido rinde mejor en nuestra DB local
+⑤ detect_trends con geo="US-FL" → tendencias actuales de la audiencia
+⑥ analyze_competitors → brechas y ángulos de diferenciación disponibles
+⑦ get_engagement_data → comentarios sin responder (alerta si hay urgentes)
+
+USA los resultados de ① ② ③ para:
+- Elegir el hook conductor de la semana (del top 10 generado)
+- Seleccionar el hashtag cluster para todos los posts (los 20 tags de ②)
+- Aplicar el formato recomendado como prioridad (del calibration de ③)
+- Incluir la música sugerida en la instrucción del Reel del viernes
 
 ─── PASO 2: DECISIÓN ESTRATÉGICA ───
 Define:
