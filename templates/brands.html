@@ -2,2353 +2,421 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Voxify — Gestión de Marcas</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Voxify — Marcas</title>
 <style>
-:root {
-  --navy:   #0A2540;
-  --purple: #635BFF;
-  --violet: #9B7CFF;
-  --aqua:   #20C6B7;
-  --bg:     #F4F6FA;
-  --card:   #FFFFFF;
-  --text:   #1a1a2e;
-  --muted:  #6B7280;
-  --border: #E5E7EB;
-  --green:  #10B981;
-  --red:    #EF4444;
-  --yellow: #F59E0B;
-  --sidebar-w: 280px;
-}
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#090912;--card:#12121f;--sidebar:#0d0d1a;--purple:#635BFF;--cyan:#06d6a0;--red:#ef4444;--yellow:#f59e0b;--muted:rgba(255,255,255,.4);--border:rgba(255,255,255,.08);--text:rgba(255,255,255,.88)}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;min-height:100vh;display:flex;flex-direction:column}
+a{color:inherit;text-decoration:none}
 
-/* HEADER */
-header {
-  background: var(--navy); padding: 0 24px; height: 56px;
-  display: flex; align-items: center; justify-content: space-between;
-  flex-shrink: 0; box-shadow: 0 2px 12px rgba(0,0,0,0.2);
-}
-.logo { color: white; font-size: 17px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
-.logo-dot { width: 9px; height: 9px; border-radius: 50%; background: linear-gradient(135deg, var(--aqua), var(--purple)); }
-.header-nav { display: flex; gap: 8px; }
-.nav-link { color: rgba(255,255,255,0.7); font-size: 13px; font-weight: 500; text-decoration: none; padding: 6px 14px; border-radius: 6px; transition: all 0.15s; }
-.nav-link:hover { background: rgba(255,255,255,0.1); color: white; }
-.nav-link.active { background: rgba(255,255,255,0.15); color: white; }
+nav{background:var(--sidebar);border-bottom:1px solid var(--border);padding:0 24px;height:52px;display:flex;align-items:center;gap:32px;flex-shrink:0}
+.nav-brand{font-weight:800;font-size:16px;color:#fff;letter-spacing:-.5px}
+.nav-brand span{color:var(--purple)}
+.nav-links{display:flex;gap:4px}
+.nav-links a{padding:6px 14px;border-radius:8px;color:var(--muted);font-size:13px;font-weight:500;transition:.15s}
+.nav-links a:hover{color:#fff;background:rgba(255,255,255,.06)}
+.nav-links a.active{color:var(--purple);background:rgba(99,91,255,.18)}
 
-/* LAYOUT */
-.layout { display: flex; flex: 1; overflow: hidden; }
+.layout{display:flex;flex:1;overflow:hidden}
 
 /* SIDEBAR */
-.sidebar {
-  width: var(--sidebar-w); background: var(--navy); display: flex;
-  flex-direction: column; flex-shrink: 0; overflow: hidden;
-  border-right: 1px solid rgba(255,255,255,0.07);
-}
-.sidebar-header { padding: 20px 16px 12px; }
-.sidebar-title { color: rgba(255,255,255,0.5); font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 12px; }
-.new-brand-btn {
-  width: 100%; padding: 10px; border-radius: 10px;
-  background: var(--purple); color: white; border: none; cursor: pointer;
-  font-size: 13px; font-weight: 600; display: flex; align-items: center;
-  justify-content: center; gap: 8px; transition: all 0.15s;
-}
-.new-brand-btn:hover { background: var(--violet); }
-.brands-list { flex: 1; overflow-y: auto; padding: 8px; }
-.brand-card {
-  padding: 12px 14px; border-radius: 10px; cursor: pointer; margin-bottom: 4px;
-  display: flex; align-items: center; gap: 12px; transition: all 0.15s;
-  border: 1.5px solid transparent;
-}
-.brand-card:hover { background: rgba(255,255,255,0.06); }
-.brand-card.active { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.15); }
-.brand-dot { width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 16px; }
-.brand-info { flex: 1; min-width: 0; }
-.brand-name { color: white; font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.brand-industry { color: rgba(255,255,255,0.45); font-size: 11px; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.brand-stats-pill { background: rgba(255,255,255,0.08); border-radius: 12px; padding: 2px 8px; font-size: 10px; color: rgba(255,255,255,0.5); white-space: nowrap; }
+.sidebar{width:240px;background:var(--sidebar);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
+.sb-head{padding:16px;border-bottom:1px solid var(--border)}
+.sb-title{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.5px;margin-bottom:10px}
+.btn-new{width:100%;padding:9px;background:var(--purple);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;transition:.15s}
+.btn-new:hover{background:#7c75ff}
+.brand-list{flex:1;overflow-y:auto;padding:8px}
+.brand-item{padding:10px 12px;border-radius:10px;cursor:pointer;transition:.15s;display:flex;align-items:center;gap:10px;margin-bottom:2px}
+.brand-item:hover{background:rgba(255,255,255,.05)}
+.brand-item.active{background:rgba(99,91,255,.15)}
+.brand-dot{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.brand-info .brand-name{font-size:13px;font-weight:600}
+.brand-info .brand-sub{font-size:11px;color:var(--muted)}
+.researched-dot{width:7px;height:7px;border-radius:50%;background:var(--cyan);margin-left:auto;flex-shrink:0}
 
 /* MAIN */
-.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.main{flex:1;overflow-y:auto;display:flex;flex-direction:column}
+.form-panel{flex:1;padding:28px 32px;max-width:900px}
+.panel-title{font-size:18px;font-weight:700;margin-bottom:4px}
+.panel-sub{color:var(--muted);font-size:13px;margin-bottom:24px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.form-full{grid-column:1/-1}
+.field{display:flex;flex-direction:column;gap:6px}
+label{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.4px}
+input,textarea{background:#1a1a2e;border:1px solid var(--border);border-radius:10px;color:#fff;padding:10px 14px;font-size:13px;width:100%;transition:.15s;font-family:inherit}
+input:focus,textarea:focus{outline:none;border-color:var(--purple);background:#1e1e38}
+textarea{resize:vertical;min-height:72px}
+input[type=color]{padding:4px;height:42px;cursor:pointer}
+small{color:var(--muted);font-size:11px}
+.form-actions{display:flex;gap:10px;margin-top:20px;padding-top:20px;border-top:1px solid var(--border)}
+.btn{padding:9px 20px;border-radius:10px;border:none;cursor:pointer;font-size:13px;font-weight:700;transition:.15s}
+.btn-save{background:var(--purple);color:#fff}
+.btn-save:hover{background:#7c75ff}
+.btn-delete{background:rgba(239,68,68,.1);color:var(--red)}
+.btn-delete:hover{background:rgba(239,68,68,.22)}
+.divider{height:1px;background:var(--border);margin:24px 0}
+.section-title{font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.4px;margin-bottom:14px}
 
-/* EMPTY STATE */
-.empty-main { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; color: var(--muted); }
-.empty-main h2 { font-size: 22px; color: var(--navy); }
-.empty-main p { font-size: 14px; }
+/* RESEARCH PANEL */
+.research-panel{background:var(--sidebar);border-left:1px solid var(--border);width:340px;flex-shrink:0;display:flex;flex-direction:column;overflow:hidden}
+.rp-head{padding:16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.rp-title{font-size:13px;font-weight:700}
+.btn-research{background:rgba(6,214,160,.15);color:var(--cyan);border:1px solid rgba(6,214,160,.2);border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;transition:.15s}
+.btn-research:hover{background:rgba(6,214,160,.25)}
+.btn-research:disabled{opacity:.4;cursor:not-allowed}
+.rp-body{flex:1;overflow-y:auto;padding:16px}
+.rp-empty{color:var(--muted);font-size:12px;text-align:center;padding:32px 16px}
+.r-section{margin-bottom:20px}
+.r-section-title{font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.6px;margin-bottom:10px}
+.r-card{background:rgba(255,255,255,.04);border-radius:10px;padding:12px;margin-bottom:8px;font-size:12px;line-height:1.5}
+.r-card-title{font-weight:700;font-size:12px;margin-bottom:3px}
+.r-card-sub{color:var(--muted);font-size:11px}
+.r-tag{display:inline-flex;background:rgba(99,91,255,.15);color:#a5b4fc;border-radius:20px;padding:2px 9px;font-size:11px;font-weight:600;margin:2px}
+.r-summary{background:rgba(99,91,255,.12);border:1px solid rgba(99,91,255,.2);border-radius:12px;padding:14px;margin-bottom:16px;font-size:12px;line-height:1.6;color:rgba(255,255,255,.8)}
+.progress-bar{height:4px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden;margin-bottom:8px}
+.progress-fill{height:100%;background:var(--purple);transition:width .5s;border-radius:2px}
+.progress-label{font-size:11px;color:var(--muted);margin-bottom:16px}
 
-/* BRAND FORM AREA */
-.brand-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-
-/* BRAND TOP BAR */
-.brand-topbar {
-  background: white; border-bottom: 1px solid var(--border);
-  padding: 16px 28px; display: flex; align-items: center; gap: 16px; flex-shrink: 0;
-}
-.brand-topbar-color { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
-.brand-topbar-name { font-size: 20px; font-weight: 700; color: var(--navy); }
-.brand-topbar-tag { font-size: 13px; color: var(--muted); margin-top: 2px; }
-.topbar-actions { margin-left: auto; display: flex; gap: 10px; }
-
-/* TABS */
-.tabs-bar {
-  background: white; border-bottom: 2px solid var(--border);
-  padding: 0 28px; display: flex; gap: 0; flex-shrink: 0; overflow-x: auto;
-}
-.tab-btn {
-  padding: 14px 18px; border: none; background: none; cursor: pointer;
-  font-size: 13px; font-weight: 600; color: var(--muted);
-  border-bottom: 2px solid transparent; margin-bottom: -2px;
-  white-space: nowrap; transition: all 0.15s; display: flex; align-items: center; gap: 6px;
-}
-.tab-btn:hover { color: var(--purple); }
-.tab-btn.active { color: var(--purple); border-bottom-color: var(--purple); }
-
-/* FORM CONTENT */
-.form-scroll { flex: 1; overflow-y: auto; padding: 28px; }
-.tab-pane { display: none; }
-.tab-pane.active { display: block; }
-
-/* SECTIONS */
-.section { background: white; border-radius: 14px; border: 1.5px solid var(--border); padding: 24px; margin-bottom: 20px; }
-.section-title { font-size: 14px; font-weight: 700; color: var(--navy); margin-bottom: 18px; display: flex; align-items: center; gap: 8px; }
-.section-title span { opacity: 0.5; font-size: 16px; }
-.section-subtitle { font-size: 12px; color: var(--muted); font-weight: 400; margin-left: 4px; }
-
-.form-grid { display: grid; gap: 18px; }
-.form-grid-2 { grid-template-columns: 1fr 1fr; }
-.form-grid-3 { grid-template-columns: 1fr 1fr 1fr; }
-
-.field { display: flex; flex-direction: column; gap: 6px; }
-.field label { font-size: 12px; font-weight: 600; color: var(--text); letter-spacing: 0.2px; }
-.field small { font-size: 11px; color: var(--muted); margin-top: 2px; }
-input[type=text], input[type=url], input[type=number], input[type=password], select, textarea {
-  padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 8px;
-  font-size: 13px; color: var(--text); font-family: inherit; outline: none;
-  transition: border-color 0.15s; background: white; width: 100%;
-}
-input:focus, select:focus, textarea:focus { border-color: var(--purple); }
-textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
-textarea.tall { min-height: 130px; }
-
-/* COLOR PICKER */
-.color-row { display: flex; align-items: center; gap: 12px; }
-input[type=color] { width: 44px; height: 36px; border: 1.5px solid var(--border); border-radius: 8px; cursor: pointer; padding: 2px; background: white; }
-.color-hex { flex: 1; }
-
-/* TAGS INPUT */
-.tags-wrap { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px; border: 1.5px solid var(--border); border-radius: 8px; min-height: 44px; background: white; cursor: text; transition: border-color 0.15s; }
-.tags-wrap:focus-within { border-color: var(--purple); }
-.tag { background: var(--bg); border: 1px solid var(--border); border-radius: 20px; padding: 3px 10px; font-size: 12px; color: var(--text); display: flex; align-items: center; gap: 6px; }
-.tag button { background: none; border: none; cursor: pointer; color: var(--muted); font-size: 14px; padding: 0; line-height: 1; }
-.tag button:hover { color: var(--red); }
-.tags-input { border: none; outline: none; font-size: 13px; min-width: 120px; flex: 1; font-family: inherit; background: transparent; }
-
-/* PERSONA CARDS */
-.personas-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-.persona-card { border: 1.5px solid var(--border); border-radius: 12px; overflow: hidden; }
-.persona-header { padding: 12px 16px; background: var(--bg); display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border); }
-.persona-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--purple); color: white; display: flex; align-items: center; justify-content: center; font-size: 16px; }
-.persona-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; }
-
-/* COMPETITOR CARDS */
-.competitors-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
-.competitor-card { border: 1.5px solid var(--border); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
-
-/* RADIO & CHECKBOX GROUP */
-.radio-group, .check-group { display: flex; flex-wrap: wrap; gap: 8px; }
-.radio-opt, .check-opt { display: flex; align-items: center; gap: 6px; cursor: pointer; }
-.radio-opt input, .check-opt input { cursor: pointer; accent-color: var(--purple); width: 15px; height: 15px; }
-.radio-opt label, .check-opt label { font-size: 13px; cursor: pointer; }
-
-/* SLIDER */
-.slider-row { display: flex; align-items: center; gap: 12px; }
-.slider-label { font-size: 11px; color: var(--muted); width: 60px; }
-.slider-label.right { text-align: right; }
-input[type=range] { flex: 1; accent-color: var(--purple); }
-.slider-val { font-size: 12px; font-weight: 600; color: var(--purple); width: 30px; text-align: center; }
-
-/* GOALS TABLE */
-.goals-cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-.goal-col { border: 1.5px solid var(--border); border-radius: 12px; overflow: hidden; }
-.goal-col-header { padding: 14px 18px; text-align: center; border-bottom: 1px solid var(--border); }
-.goal-period { font-size: 18px; font-weight: 800; color: var(--navy); }
-.goal-phase { font-size: 11px; color: var(--muted); margin-top: 2px; }
-.goal-body { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
-.goal-group-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); margin-top: 4px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
-.goal-field { display: flex; align-items: center; gap: 8px; }
-.goal-field label { font-size: 12px; color: var(--text); flex: 1; }
-.goal-field input { width: 90px; text-align: right; }
-.goal-progress { background: var(--bg); border-radius: 4px; height: 4px; margin-top: 3px; overflow: hidden; }
-.goal-progress-bar { height: 100%; background: linear-gradient(90deg, var(--aqua), var(--purple)); border-radius: 4px; transition: width 0.4s; }
-
-/* CALENDAR TABLE */
-.cal-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.cal-table th { font-size: 11px; font-weight: 600; color: var(--muted); text-align: center; padding: 8px 12px; border-bottom: 1px solid var(--border); }
-.cal-table th:first-child { text-align: left; }
-.cal-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); text-align: center; }
-.cal-table td:first-child { text-align: left; font-weight: 600; display: flex; align-items: center; gap: 10px; }
-.cal-table input[type=checkbox] { accent-color: var(--purple); width: 15px; height: 15px; cursor: pointer; }
-.cal-table select { width: 100px; padding: 5px 8px; }
-.platform-icon-sm { width: 28px; height: 28px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 14px; }
-.icon-ig { background: linear-gradient(135deg, #f09433, #dc2743, #bc1888); }
-.icon-fb { background: #1877F2; }
-.icon-li { background: #0A66C2; }
-
-/* STRATEGY ACTIONS */
-.action-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
-.action-card { border: 1.5px solid var(--border); border-radius: 14px; padding: 22px; display: flex; flex-direction: column; gap: 12px; transition: box-shadow 0.2s; cursor: pointer; background: white; text-align: left; }
-.action-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.08); border-color: var(--purple); }
-.action-icon { font-size: 28px; }
-.action-title { font-size: 15px; font-weight: 700; color: var(--navy); }
-.action-desc { font-size: 12px; color: var(--muted); line-height: 1.5; }
-.action-status { font-size: 11px; color: var(--green); font-weight: 600; }
-.action-status.none { color: var(--muted); }
-.action-btn { margin-top: auto; padding: 9px 16px; border-radius: 8px; border: none; cursor: pointer; font-size: 13px; font-weight: 600; background: var(--purple); color: white; transition: all 0.15s; }
-.action-btn:hover { background: var(--violet); }
-.action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-/* PERFORMANCE MINI-DASHBOARD */
-.perf-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
-.perf-card { border: 1.5px solid var(--border); border-radius: 10px; padding: 16px; text-align: center; }
-.perf-num { font-size: 26px; font-weight: 800; color: var(--navy); }
-.perf-label { font-size: 11px; color: var(--muted); margin-top: 4px; }
-
-/* CREDENTIALS */
-.cred-row { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: end; }
-.test-btn { padding: 9px 14px; border-radius: 8px; border: 1.5px solid var(--border); background: white; color: var(--text); font-size: 13px; cursor: pointer; font-weight: 600; white-space: nowrap; transition: all 0.15s; }
-.test-btn:hover { border-color: var(--purple); color: var(--purple); }
-.cred-ok { color: var(--green); font-size: 12px; font-weight: 600; }
-.cred-err { color: var(--red); font-size: 12px; }
-/* LOGO & MANUAL UPLOAD */
-.logo-upload-area { border: 2px dashed var(--border); border-radius: 12px; padding: 28px 20px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 6px; transition: all 0.2s; background: #FAFAFA; }
-.logo-upload-area:hover { border-color: var(--purple); background: #F5F3FF; }
-.logo-upload-area.drag-over { border-color: var(--purple); background: #EEF2FF; }
-/* MEDIA LIBRARY */
-.media-upload-zone { border: 2px dashed var(--border); border-radius: 14px; padding: 36px 24px; text-align: center; cursor: pointer; transition: all 0.2s; background: #FAFAFA; margin-bottom: 4px; }
-.media-upload-zone:hover,.media-upload-zone.drag-over { border-color: var(--purple); background: #F5F3FF; }
-.media-filter-bar { display: flex; gap: 6px; margin-bottom: 16px; }
-.media-filter-btn { padding: 6px 14px; border-radius: 20px; border: 1.5px solid var(--border); background: white; cursor: pointer; font-size: 12px; font-weight: 600; color: var(--muted); transition: all 0.15s; }
-.media-filter-btn.active { background: var(--purple); color: white; border-color: var(--purple); }
-.media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
-.media-card { border: 1.5px solid var(--border); border-radius: 10px; overflow: hidden; background: white; transition: all 0.15s; }
-.media-card:hover { border-color: var(--purple); box-shadow: 0 2px 12px rgba(99,91,255,0.12); }
-.media-card-thumb { width: 100%; height: 120px; object-fit: cover; display: block; background: #F3F4F6; }
-.media-card-video { width: 100%; height: 120px; background: #1a1a2e; display: flex; align-items: center; justify-content: center; font-size: 36px; }
-.media-card-body { padding: 8px; }
-.media-card-title { font-size: 11px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 4px; }
-.media-card-actions { display: flex; gap: 4px; }
-.media-card-btn { flex: 1; padding: 4px; border: 1px solid var(--border); border-radius: 5px; background: white; cursor: pointer; font-size: 11px; color: var(--muted); transition: all 0.12s; }
-.media-card-btn:hover { border-color: var(--purple); color: var(--purple); }
-.media-card-btn.del:hover { border-color: var(--red); color: var(--red); }
-.media-card.selected { border-color: var(--purple); box-shadow: 0 0 0 2px var(--purple); }
-.media-empty { grid-column: 1/-1; text-align: center; color: var(--muted); padding: 32px; font-size: 13px; }
-.progress-bar-wrap { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; margin-bottom: 4px; }
-.progress-bar-fill { height: 100%; background: var(--purple); border-radius: 3px; transition: width 0.3s; width: 0%; }
-/* CAMPAIGN TAB */
-.camp-section-header { font-size: 13px; font-weight: 700; color: var(--navy); background: #F4F6FA; border-left: 3px solid var(--purple); padding: 8px 12px; border-radius: 0 8px 8px 0; margin: 16px 0 12px; }
-.product-image-selector { border: 1.5px solid var(--border); border-radius: 8px; padding: 12px; min-height: 54px; display: flex; align-items: center; }
-/* SUGGESTION CARDS */
-.sug-card-header { background: linear-gradient(135deg, var(--navy), #1a3a5c); padding: 14px 16px; }
-.sug-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; text-transform: uppercase; }
-/* MEDIA PICKER MODAL */
-.media-picker-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 1000; display: flex; align-items: center; justify-content: center; }
-.media-picker-modal { background: white; border-radius: 16px; width: 90vw; max-width: 700px; max-height: 80vh; display: flex; flex-direction: column; overflow: hidden; }
-.media-picker-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-.media-picker-grid { flex: 1; overflow-y: auto; padding: 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
-/* ANALYZE BUTTON */
-.btn-analyze { display: inline-flex; align-items: center; gap: 8px; padding: 11px 22px; border-radius: 10px; background: linear-gradient(135deg, #059669, #10B981); color: white; border: none; cursor: pointer; font-size: 14px; font-weight: 700; transition: all 0.2s; }
-.btn-analyze:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(16,185,129,0.4); }
-.btn-analyze:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
-.btn-green { display: inline-flex; align-items: center; gap: 6px; padding: 10px 18px; border-radius: 8px; background: #059669; color: white; border: none; cursor: pointer; font-size: 13px; font-weight: 600; }
-.btn-secondary { padding: 10px 18px; border-radius: 8px; border: 1.5px solid var(--border); background: white; color: var(--muted); cursor: pointer; font-size: 13px; font-weight: 600; }
-
-/* BUTTONS */
-.btn { padding: 9px 20px; border-radius: 8px; border: none; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.15s; display: inline-flex; align-items: center; gap: 7px; }
-.btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
-.btn:active { transform: translateY(0); }
-.btn-primary { background: var(--purple); color: white; }
-.btn-success { background: var(--green); color: white; }
-.btn-danger { background: var(--red); color: white; }
-.btn-ghost { background: white; color: var(--text); border: 1.5px solid var(--border); }
-.btn-ghost:hover { border-color: var(--purple); color: var(--purple); }
-.btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-
-/* SAVE BAR */
-.save-bar {
-  background: white; border-top: 1px solid var(--border); padding: 14px 28px;
-  display: flex; gap: 12px; align-items: center; flex-shrink: 0;
-}
-.save-hint { font-size: 12px; color: var(--muted); margin-left: auto; }
-
-/* GENERATION BANNER */
-#gen-banner { display: none; background: linear-gradient(135deg,#1a3a5c,var(--navy)); border-bottom: 2px solid var(--purple); padding: 12px 28px; align-items: center; gap: 14px; flex-shrink: 0; }
-#gen-banner.show { display: flex; }
-.gen-spinner { width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.3); border-top-color: var(--aqua); border-radius: 50%; animation: spin 0.8s linear infinite; }
-.gen-step { color: white; font-size: 13px; font-weight: 600; flex: 1; }
-@keyframes spin { to { transform: rotate(360deg); } }
+/* WELCOME */
+.welcome{flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;color:var(--muted);text-align:center;padding:40px}
+.welcome h2{color:#fff;font-size:20px}
 
 /* TOAST */
-#toast { position: fixed; bottom: 28px; right: 28px; background: var(--navy); color: white; padding: 12px 18px; border-radius: 10px; font-size: 14px; font-weight: 500; box-shadow: 0 8px 32px rgba(0,0,0,0.2); opacity: 0; transform: translateY(10px); transition: all 0.25s; z-index: 999; max-width: 340px; }
-#toast.show { opacity: 1; transform: translateY(0); }
-#toast.success { background: var(--green); }
-#toast.error { background: var(--red); }
-
-@media (max-width: 900px) {
-  .form-grid-2, .form-grid-3 { grid-template-columns: 1fr; }
-  .goals-cols, .action-cards, .perf-grid { grid-template-columns: 1fr; }
-  .personas-grid, .competitors-grid { grid-template-columns: 1fr; }
-  :root { --sidebar-w: 200px; }
-}
-@media (max-width: 640px) {
-  .sidebar { display: none; }
-}
+#toast{position:fixed;bottom:24px;right:24px;background:#1e1e2e;border:1px solid var(--border);color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;opacity:0;transition:.3s;pointer-events:none;z-index:999}
+#toast.show{opacity:1}
 </style>
 </head>
 <body>
-
-<header>
-  <div class="logo">
-    <div class="logo-dot"></div>
-    Voxify — Panel de Agencia
+<nav>
+  <div class="nav-brand">⚡ <span>Voxify</span></div>
+  <div class="nav-links">
+    <a href="/">Dashboard</a>
+    <a href="/brands" class="active">Marcas</a>
+    <a href="/content">Contenido</a>
   </div>
-  <nav class="header-nav">
-    <a href="/" class="nav-link">Revisión de Contenido</a>
-    <a href="/brands" class="nav-link active">Marcas</a>
-  </nav>
-</header>
-
-<div id="gen-banner">
-  <div class="gen-spinner"></div>
-  <div class="gen-step" id="gen-step">Procesando...</div>
-</div>
+</nav>
 
 <div class="layout">
-
-  <!-- SIDEBAR -->
+  <!-- Sidebar -->
   <aside class="sidebar">
-    <div class="sidebar-header">
-      <div class="sidebar-title">Tus Marcas</div>
-      <button class="new-brand-btn" onclick="newBrand()">+ Nueva Marca</button>
+    <div class="sb-head">
+      <div class="sb-title">MARCAS</div>
+      <button class="btn-new" onclick="newBrand()">+ Nueva marca</button>
     </div>
-    <div class="brands-list" id="brands-list">
-      <div style="color:rgba(255,255,255,0.3);font-size:12px;padding:12px">Cargando...</div>
+    <div class="brand-list" id="brand-list">
+      {% for b in brands %}
+      <div class="brand-item" id="item-{{ b.id }}" onclick="selectBrand('{{ b.id }}')">
+        <div class="brand-dot" style="background:{{ b.color or '#635BFF' }}22;border:1.5px solid {{ b.color or '#635BFF' }}44">🏢</div>
+        <div class="brand-info">
+          <div class="brand-name">{{ b.name }}</div>
+          <div class="brand-sub">{{ b.instagram_handle or b.industry or b.id }}</div>
+        </div>
+        {% if b.last_research %}<div class="researched-dot" title="Investigado"></div>{% endif %}
+      </div>
+      {% endfor %}
     </div>
   </aside>
 
-  <!-- MAIN -->
-  <main class="main">
-
-    <!-- Empty state -->
-    <div class="empty-main" id="empty-main">
-      <div style="font-size:48px">🏢</div>
-      <h2>Selecciona o crea una marca</h2>
-      <p>Gestiona el perfil completo, objetivos y estrategia de cada cliente.</p>
-      <button class="btn btn-primary" onclick="newBrand()">+ Nueva Marca</button>
+  <!-- Main form area -->
+  <div class="main" id="main-area">
+    <div class="welcome" id="welcome-screen">
+      <div style="font-size:40px">🏢</div>
+      <h2>Selecciona una marca</h2>
+      <p>Elige una marca de la lista o crea una nueva para comenzar.</p>
+      <button class="btn btn-save" style="margin-top:8px" onclick="newBrand()">+ Nueva marca</button>
     </div>
+  </div>
 
-    <!-- Brand form area -->
-    <div class="brand-area" id="brand-area" style="display:none">
-
-      <!-- Top bar -->
-      <div class="brand-topbar">
-        <div class="brand-topbar-color" id="tb-color" style="background:#635BFF">🏢</div>
-        <div>
-          <div class="brand-topbar-name" id="tb-name">Nueva Marca</div>
-          <div class="brand-topbar-tag" id="tb-tag">Completa los campos y guarda</div>
-        </div>
-        <div class="topbar-actions">
-          <button class="btn btn-ghost" onclick="newBrand()" style="font-size:13px">+ Nueva Marca</button>
-          <a id="content-link" href="/" class="btn btn-ghost" style="font-size:13px">Ver Contenido →</a>
-          <button class="btn btn-danger" id="delete-btn" onclick="deleteBrand()" style="display:none">Eliminar</button>
-        </div>
+  <!-- Research panel -->
+  <div class="research-panel">
+    <div class="rp-head">
+      <div class="rp-title">⚡ Investigación IA</div>
+      <button class="btn-research" id="research-btn" onclick="runResearch()" disabled>Generar</button>
+    </div>
+    <div class="rp-body" id="rp-body">
+      <div class="rp-empty" id="rp-empty">
+        Selecciona una marca y haz clic en <strong>Generar</strong> para lanzar investigación profunda con IA.
       </div>
-
-      <!-- Tabs -->
-      <div class="tabs-bar">
-        <button class="tab-btn active" data-tab="identidad">🏷 Identidad</button>
-        <button class="tab-btn" data-tab="audiencia">👥 Audiencia</button>
-        <button class="tab-btn" data-tab="voz">🎙 Voz & Tono</button>
-        <button class="tab-btn" data-tab="posicionamiento">🎯 Posicionamiento</button>
-        <button class="tab-btn" data-tab="credenciales">🔑 Credenciales</button>
-        <button class="tab-btn" data-tab="calendario">📅 Calendario</button>
-        <button class="tab-btn" data-tab="objetivos">📊 Objetivos</button>
-        <button class="tab-btn" data-tab="estrategia">🚀 Estrategia</button>
-        <button class="tab-btn" data-tab="medios">📸 Medios</button>
-        <button class="tab-btn" data-tab="campana">📣 Campaña</button>
+      <div id="rp-progress" style="display:none">
+        <div class="progress-bar"><div class="progress-fill" id="prog-fill" style="width:10%"></div></div>
+        <div class="progress-label" id="prog-label">Iniciando investigación...</div>
       </div>
-
-      <!-- Form scroll area -->
-      <div class="form-scroll">
-
-        <!-- ─── TAB: IDENTIDAD ─── -->
-        <div class="tab-pane active" id="tab-identidad">
-          <div class="section">
-            <div class="section-title"><span>🏷</span> Identidad de la Marca <small class="section-subtitle">Quién es, qué hace y cómo se ve</small></div>
-            <div class="form-grid form-grid-2">
-              <div class="field">
-                <label>ID de Marca (slug) *</label>
-                <input type="text" id="f-id" placeholder="ej: aroma_beans" oninput="updateTopBar()">
-                <small>Sin espacios ni mayúsculas. Ej: aroma_beans, salon_glow</small>
-              </div>
-              <div class="field">
-                <label>Nombre de la Marca *</label>
-                <input type="text" id="f-name" placeholder="ej: Aroma Beans" oninput="updateTopBar()">
-              </div>
-              <div class="field">
-                <label>Tagline / Eslogan</label>
-                <input type="text" id="f-tagline" placeholder="ej: El mejor café colombiano en Miami">
-              </div>
-              <div class="field">
-                <label>Industria / Sector</label>
-                <input type="text" id="f-industry" placeholder="ej: Café de especialidad, E-commerce">
-              </div>
-              <div class="field" style="grid-column:1/-1">
-                <label>Geografía Objetivo</label>
-                <input type="text" id="f-geography" placeholder="ej: Miami, FL y área metropolitana · Hispanohablantes en EE.UU.">
-              </div>
-              <div class="field" style="grid-column:1/-1">
-                <label>Descripción de la Marca</label>
-                <textarea class="tall" id="f-description" placeholder="¿Qué hace la marca? ¿A quién sirve? ¿Qué la hace especial? (2-3 oraciones claras)"></textarea>
-              </div>
-              <div class="field" style="grid-column:1/-1">
-                <label>Misión</label>
-                <textarea id="f-mission" placeholder="El propósito más profundo de la marca. ¿Por qué existe más allá de hacer dinero?"></textarea>
-              </div>
-            </div>
-          </div>
-          <div class="section">
-            <div class="section-title"><span>🎨</span> Identidad Visual</div>
-            <div class="form-grid form-grid-2">
-              <div class="field">
-                <label>Color Principal de Marca</label>
-                <div class="color-row">
-                  <input type="color" id="f-color" value="#635BFF" oninput="syncColorHex()">
-                  <input type="text" class="color-hex" id="f-color-hex" value="#635BFF" oninput="syncColorPicker()">
-                </div>
-              </div>
-              <div class="field">
-                <label>Color de Texto sobre el color de marca</label>
-                <div class="radio-group">
-                  <label class="radio-opt"><input type="radio" name="text_color" value="#FFFFFF" checked> Blanco</label>
-                  <label class="radio-opt"><input type="radio" name="text_color" value="#000000"> Negro</label>
-                </div>
-              </div>
-              <!-- Logo upload -->
-              <div class="field" style="grid-column:1/-1">
-                <label>Logo de la Marca</label>
-                <div class="logo-upload-area" id="logo-drop-zone">
-                  <img id="logo-preview" src="" alt="" style="display:none;max-height:80px;max-width:200px;border-radius:8px;margin-bottom:8px">
-                  <div id="logo-placeholder" style="color:var(--muted);font-size:13px;text-align:center">
-                    <div style="font-size:28px;margin-bottom:4px">🖼</div>
-                    Arrastra el logo aquí o haz clic para seleccionar<br>
-                    <small>PNG, JPG, SVG, WEBP — máx 5 MB</small>
-                  </div>
-                  <input type="file" id="logo-file-input" accept=".png,.jpg,.jpeg,.webp,.svg,.gif" style="display:none" onchange="handleLogoSelect(this)">
-                </div>
-                <input type="hidden" id="f-logo-url" placeholder="URL del logo">
-                <small id="logo-upload-status" style="color:var(--muted)"></small>
-              </div>
-            </div>
-          </div>
-
-          <!-- Presencia digital -->
-          <div class="section">
-            <div class="section-title"><span>🌐</span> Presencia Digital <small class="section-subtitle">La IA analiza estos recursos para conocer la marca</small></div>
-            <div class="form-grid form-grid-2">
-              <div class="field" style="grid-column:1/-1">
-                <label>Sitio Web</label>
-                <div style="display:flex;gap:8px">
-                  <input type="url" id="f-website" placeholder="https://aromabeans.com" style="flex:1">
-                </div>
-              </div>
-              <div class="field">
-                <label><span style="font-size:16px">📸</span> Instagram</label>
-                <input type="text" id="f-social-instagram" placeholder="@aromabeans o URL del perfil">
-              </div>
-              <div class="field">
-                <label><span style="font-size:16px">👍</span> Facebook</label>
-                <input type="text" id="f-social-facebook" placeholder="@aromabeans o URL de la página">
-              </div>
-              <div class="field">
-                <label><span style="font-size:16px">💼</span> LinkedIn</label>
-                <input type="text" id="f-social-linkedin" placeholder="linkedin.com/company/aromabeans">
-              </div>
-              <div class="field">
-                <label><span style="font-size:16px">🎵</span> TikTok</label>
-                <input type="text" id="f-social-tiktok" placeholder="@aromabeans">
-              </div>
-              <div class="field">
-                <label><span style="font-size:16px">▶️</span> YouTube</label>
-                <input type="text" id="f-social-youtube" placeholder="youtube.com/@aromabeans">
-              </div>
-              <div class="field">
-                <label><span style="font-size:16px">🛒</span> Tienda / E-commerce</label>
-                <input type="text" id="f-social-store" placeholder="shopify, amazon, etsy, etc.">
-              </div>
-            </div>
-          </div>
-
-          <!-- Manual de marca -->
-          <div class="section">
-            <div class="section-title"><span>📋</span> Manual de Marca y Recursos</div>
-            <div class="form-grid">
-              <div class="field" style="grid-column:1/-1">
-                <label>Manual de Marca / Brand Guidelines</label>
-                <div class="logo-upload-area" id="manual-drop-zone" style="padding:20px">
-                  <div id="manual-placeholder" style="color:var(--muted);font-size:13px;text-align:center">
-                    <div style="font-size:28px;margin-bottom:4px">📄</div>
-                    Sube el manual de marca en PDF o texto<br>
-                    <small>PDF, TXT, MD — máx 10 MB — se extrae el texto automáticamente</small>
-                  </div>
-                  <div id="manual-loaded" style="display:none;text-align:center">
-                    <div style="font-size:28px">✅</div>
-                    <div id="manual-name" style="font-weight:600;font-size:13px;margin:4px 0"></div>
-                    <div id="manual-chars" style="color:var(--muted);font-size:12px"></div>
-                  </div>
-                  <input type="file" id="manual-file-input" accept=".pdf,.txt,.md" style="display:none" onchange="handleManualSelect(this)">
-                </div>
-                <small id="manual-upload-status" style="color:var(--muted)"></small>
-              </div>
-            </div>
-            <div style="margin-top:16px">
-              <button class="btn-analyze" id="btn-analyze" onclick="analyzeWithAI()">
-                <span>🤖</span> Analizar marca con IA
-              </button>
-              <small style="color:var(--muted);margin-left:12px">Claude leerá el sitio web, redes y manual para proponer todos los campos automáticamente</small>
-            </div>
-          </div>
-
-          <!-- Panel de insights IA -->
-          <div id="insights-panel" style="display:none" class="section">
-            <div class="section-title" style="color:#059669"><span>✨</span> Análisis completado — datos guardados automáticamente</div>
-            <div id="insights-summary" style="background:#F0FDF4;border:1px solid #6EE7B7;border-radius:10px;padding:16px;margin-bottom:16px;font-size:13px;line-height:1.6;white-space:pre-wrap"></div>
-            <div style="display:flex;gap:10px;flex-wrap:wrap">
-              <button class="btn-secondary" onclick="document.getElementById('insights-panel').style.display='none'">Cerrar resumen</button>
-            </div>
-          </div>
-
-          <div class="section">
-            <div class="section-title"><span>✨</span> Valores y Hashtags</div>
-            <div class="form-grid">
-              <div class="field">
-                <label>Valores de la Marca</label>
-                <div class="tags-wrap" id="tags-values" onclick="focusTagInput('tag-values-input')">
-                  <input class="tags-input" id="tag-values-input" placeholder="Agrega un valor y presiona Enter..." onkeydown="addTag(event,'tags-values','tag-values-input','values')">
-                </div>
-                <small>Ej: Autenticidad, Sostenibilidad, Comunidad</small>
-              </div>
-              <div class="field">
-                <label>Hashtags Estratégicos</label>
-                <div class="tags-wrap" id="tags-hashtags" onclick="focusTagInput('tag-hashtags-input')">
-                  <input class="tags-input" id="tag-hashtags-input" placeholder="#hashtag + Enter..." onkeydown="addTag(event,'tags-hashtags','tag-hashtags-input','hashtags')">
-                </div>
-                <small>Ej: #CaféColombiano #LatinoCoffee #MiamiCafe</small>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ─── TAB: AUDIENCIA ─── -->
-        <div class="tab-pane" id="tab-audiencia">
-          <div class="section">
-            <div class="section-title"><span>👥</span> Perfiles de Audiencia (Buyer Personas)</div>
-            <div class="personas-grid">
-              <div class="persona-card" id="persona-0">
-                <div class="persona-header">
-                  <div class="persona-avatar">1</div>
-                  <input type="text" id="p0-name" placeholder="Nombre del perfil" style="border:none;background:transparent;font-weight:600;font-size:14px;outline:none;width:100%">
-                </div>
-                <div class="persona-body">
-                  <div class="form-grid form-grid-2">
-                    <div class="field"><label>Edad</label><input type="text" id="p0-age" placeholder="ej: 35-50"></div>
-                    <div class="field"><label>Ocupación</label><input type="text" id="p0-job" placeholder="ej: Restaurantero"></div>
-                  </div>
-                  <div class="field"><label>Ingresos aproximados</label><input type="text" id="p0-income" placeholder="ej: $40k-$80k/año"></div>
-                  <div class="field"><label>Dolores principales</label><textarea id="p0-pain" placeholder="¿Qué le quita el sueño? ¿Qué problemas tiene que esta marca puede resolver?"></textarea></div>
-                  <div class="field"><label>Deseos y aspiraciones</label><textarea id="p0-goal" placeholder="¿Qué quiere lograr? ¿Cuál es su sueño relacionado con el producto?"></textarea></div>
-                </div>
-              </div>
-              <div class="persona-card" id="persona-1">
-                <div class="persona-header">
-                  <div class="persona-avatar" style="background:var(--aqua)">2</div>
-                  <input type="text" id="p1-name" placeholder="Nombre del perfil" style="border:none;background:transparent;font-weight:600;font-size:14px;outline:none;width:100%">
-                </div>
-                <div class="persona-body">
-                  <div class="form-grid form-grid-2">
-                    <div class="field"><label>Edad</label><input type="text" id="p1-age" placeholder="ej: 25-40"></div>
-                    <div class="field"><label>Ocupación</label><input type="text" id="p1-job" placeholder="ej: Agente de bienes raíces"></div>
-                  </div>
-                  <div class="field"><label>Ingresos aproximados</label><input type="text" id="p1-income" placeholder="ej: $60k-$120k/año"></div>
-                  <div class="field"><label>Dolores principales</label><textarea id="p1-pain" placeholder="¿Qué le preocupa? ¿Qué frustraciones tiene?"></textarea></div>
-                  <div class="field"><label>Deseos y aspiraciones</label><textarea id="p1-goal" placeholder="¿Qué quiere lograr?"></textarea></div>
-                </div>
-              </div>
-              <div class="persona-card" id="persona-2">
-                <div class="persona-header">
-                  <div class="persona-avatar" style="background:var(--yellow)">3</div>
-                  <input type="text" id="p2-name" placeholder="Nombre del perfil (opcional)" style="border:none;background:transparent;font-weight:600;font-size:14px;outline:none;width:100%">
-                </div>
-                <div class="persona-body">
-                  <div class="form-grid form-grid-2">
-                    <div class="field"><label>Edad</label><input type="text" id="p2-age" placeholder="ej: 40-60"></div>
-                    <div class="field"><label>Ocupación</label><input type="text" id="p2-job" placeholder="ej: Dueño de salón"></div>
-                  </div>
-                  <div class="field"><label>Ingresos aproximados</label><input type="text" id="p2-income" placeholder="ej: $30k-$60k/año"></div>
-                  <div class="field"><label>Dolores principales</label><textarea id="p2-pain" placeholder="¿Qué le preocupa?"></textarea></div>
-                  <div class="field"><label>Deseos y aspiraciones</label><textarea id="p2-goal" placeholder="¿Qué quiere lograr?"></textarea></div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="section">
-            <div class="section-title"><span>🌍</span> Demografía General</div>
-            <div class="form-grid form-grid-2">
-              <div class="field">
-                <label>Idioma Preferido</label>
-                <div class="radio-group">
-                  <label class="radio-opt"><input type="radio" name="lang" value="es" checked> Español</label>
-                  <label class="radio-opt"><input type="radio" name="lang" value="en"> English</label>
-                  <label class="radio-opt"><input type="radio" name="lang" value="bilingual"> Bilingüe</label>
-                </div>
-              </div>
-              <div class="field">
-                <label>Canales donde está activa la audiencia</label>
-                <div class="check-group">
-                  <label class="check-opt"><input type="checkbox" value="instagram" checked> Instagram</label>
-                  <label class="check-opt"><input type="checkbox" value="facebook" checked> Facebook</label>
-                  <label class="check-opt"><input type="checkbox" value="linkedin"> LinkedIn</label>
-                  <label class="check-opt"><input type="checkbox" value="tiktok"> TikTok</label>
-                  <label class="check-opt"><input type="checkbox" value="whatsapp"> WhatsApp</label>
-                </div>
-              </div>
-              <div class="field" style="grid-column:1/-1">
-                <label>Geografía de la Audiencia</label>
-                <input type="text" id="f-audience-geo" placeholder="ej: Comunidad latina en Florida, Texas y California">
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ─── TAB: VOZ & TONO ─── -->
-        <div class="tab-pane" id="tab-voz">
-          <div class="section">
-            <div class="section-title"><span>🎙</span> Voz de la Marca</div>
-            <div class="form-grid">
-              <div class="field">
-                <label>Adjetivos que definen la voz</label>
-                <div class="tags-wrap" id="tags-voice" onclick="focusTagInput('tag-voice-input')">
-                  <input class="tags-input" id="tag-voice-input" placeholder="Ej: cercano, profesional, empático — Enter para agregar..." onkeydown="addTag(event,'tags-voice','tag-voice-input','voice_adjectives')">
-                </div>
-                <small>Ej: cercano, profesional, empático, inspirador, directo</small>
-              </div>
-              <div class="field">
-                <label>Formalidad del tono</label>
-                <div class="slider-row">
-                  <span class="slider-label">Muy formal</span>
-                  <input type="range" id="f-formality" min="0" max="10" value="4" oninput="document.getElementById('formality-val').textContent=this.value">
-                  <span class="slider-val" id="formality-val">4</span>
-                  <span class="slider-label right">Muy casual</span>
-                </div>
-              </div>
-              <div class="field">
-                <label>Uso de Emojis</label>
-                <div class="radio-group">
-                  <label class="radio-opt"><input type="radio" name="emoji_use" value="frecuente"> Frecuente (en casi todo)</label>
-                  <label class="radio-opt"><input type="radio" name="emoji_use" value="moderado" checked> Moderado (para enfatizar)</label>
-                  <label class="radio-opt"><input type="radio" name="emoji_use" value="nunca"> Nunca</label>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="section">
-            <div class="section-title"><span>✍️</span> Guía Editorial</div>
-            <div class="form-grid">
-              <div class="field">
-                <label>Qué NUNCA hacer o decir</label>
-                <textarea class="tall" id="f-voice-avoid" placeholder="Ej: No usar jerga técnica sin explicar. No sonar corporativo. No prometer resultados sin respaldo. No usar inglés a menos que sea un término técnico conocido."></textarea>
-              </div>
-              <div class="field">
-                <label>Ejemplos de copy que funcionan BIEN</label>
-                <textarea class="tall" id="f-voice-good" placeholder="Pega aquí ejemplos de posts, mensajes o frases que capturen bien la voz de la marca."></textarea>
-              </div>
-              <div class="field">
-                <label>Ejemplos de copy a EVITAR</label>
-                <textarea id="f-voice-bad" placeholder="Ejemplos del tono o estilo que NO representa la marca."></textarea>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ─── TAB: POSICIONAMIENTO ─── -->
-        <div class="tab-pane" id="tab-posicionamiento">
-          <div class="section">
-            <div class="section-title"><span>🎯</span> Propuesta de Valor Única (USP)</div>
-            <div class="field">
-              <label>¿Qué hace esta marca que nadie más hace exactamente igual?</label>
-              <textarea class="tall" id="f-usp" placeholder="Completa esta frase: 'Solo [Marca] ofrece [beneficio único] para [audiencia específica] que [alternativa existente no puede dar]'&#10;&#10;Ej: Solo VoxifyHub ofrece un agente de IA en español que responde leads 24/7 para negocios latinos en EE.UU., algo que ningún chatbot genérico en inglés puede hacer con la misma efectividad cultural."></textarea>
-            </div>
-          </div>
-          <div class="section">
-            <div class="section-title"><span>⚔️</span> Análisis de Competidores</div>
-            <div class="competitors-grid">
-              <div class="competitor-card">
-                <div class="field"><label>Competidor 1</label><input type="text" id="c0-name" placeholder="Nombre de la empresa"></div>
-                <div class="field"><label>Debilidad principal</label><textarea id="c0-weakness" placeholder="¿En qué falla o qué no ofrece?"></textarea></div>
-                <div class="field"><label>URL (opcional)</label><input type="url" id="c0-url" placeholder="https://..."></div>
-              </div>
-              <div class="competitor-card">
-                <div class="field"><label>Competidor 2</label><input type="text" id="c1-name" placeholder="Nombre de la empresa"></div>
-                <div class="field"><label>Debilidad principal</label><textarea id="c1-weakness" placeholder="¿En qué falla o qué no ofrece?"></textarea></div>
-                <div class="field"><label>URL (opcional)</label><input type="url" id="c1-url" placeholder="https://..."></div>
-              </div>
-              <div class="competitor-card">
-                <div class="field"><label>Competidor 3</label><input type="text" id="c2-name" placeholder="Nombre de la empresa"></div>
-                <div class="field"><label>Debilidad principal</label><textarea id="c2-weakness" placeholder="¿En qué falla o qué no ofrece?"></textarea></div>
-                <div class="field"><label>URL (opcional)</label><input type="url" id="c2-url" placeholder="https://..."></div>
-              </div>
-            </div>
-          </div>
-          <div class="section">
-            <div class="section-title"><span>💎</span> Diferenciadores Clave</div>
-            <div class="field">
-              <label>¿Qué ventajas concretas tiene esta marca frente a la competencia?</label>
-              <div class="tags-wrap" id="tags-diff" onclick="focusTagInput('tag-diff-input')">
-                <input class="tags-input" id="tag-diff-input" placeholder="Diferenciador + Enter..." onkeydown="addTag(event,'tags-diff','tag-diff-input','differentiators')">
-              </div>
-              <small>Ej: Servicio en español, Atención 24/7, Precio 3x menor al mercado</small>
-            </div>
-          </div>
-        </div>
-
-        <!-- ─── TAB: CREDENCIALES ─── -->
-        <div class="tab-pane" id="tab-credenciales">
-          <div class="section">
-            <div class="section-title"><span>📸</span> Instagram</div>
-            <div class="form-grid">
-              <div class="cred-row">
-                <div class="field"><label>Instagram Business Account ID</label><input type="text" id="f-ig-id" placeholder="17841xxxxxxxxx"></div>
-                <button class="test-btn" onclick="testCred('instagram')">Probar IG</button>
-              </div>
-              <div class="field"><span id="ig-test-result" class="cred-ok" style="display:none"></span></div>
-            </div>
-          </div>
-          <div class="section">
-            <div class="section-title"><span>👍</span> Facebook</div>
-            <div class="form-grid">
-              <div class="field"><label>Facebook Page ID</label><input type="text" id="f-fb-id" placeholder="1234567890xxxxxxxx"></div>
-              <div class="cred-row">
-                <div class="field"><label>Facebook Page Access Token</label><input type="password" id="f-fb-token" placeholder="EAAxxxxxxx..."></div>
-                <button class="test-btn" onclick="testCred('facebook')">Probar FB</button>
-              </div>
-              <div class="field"><span id="fb-test-result" class="cred-ok" style="display:none"></span></div>
-            </div>
-          </div>
-          <div class="section">
-            <div class="section-title"><span>🔐</span> Meta System User Token (compartido IG + FB)</div>
-            <div class="form-grid">
-              <div class="cred-row">
-                <div class="field"><label>Access Token del System User o App</label><input type="password" id="f-meta-token" placeholder="EAAxxxxxxx..."></div>
-                <button class="test-btn" onclick="testCred('meta')">Verificar Token</button>
-              </div>
-              <div class="field"><span id="meta-test-result" class="cred-ok" style="display:none"></span></div>
-              <div class="field" style="grid-column:1/-1">
-                <small style="color:var(--muted)">Los tokens se guardan en la base de datos local. Para mayor seguridad en producción, usa variables de entorno (.env) y deja estos campos vacíos.</small>
-              </div>
-            </div>
-          </div>
-          <div class="section">
-            <div class="section-title"><span>💼</span> LinkedIn (opcional)</div>
-            <div class="form-grid form-grid-2">
-              <div class="field"><label>LinkedIn Access Token</label><input type="password" id="f-li-token" placeholder="AQVxxxxxxx..."></div>
-              <div class="field"><label>LinkedIn Organization ID</label><input type="text" id="f-li-org" placeholder="12345678"></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ─── TAB: CALENDARIO ─── -->
-        <div class="tab-pane" id="tab-calendario">
-          <div class="section">
-            <div class="section-title"><span>📅</span> Horario de Publicación (Eastern Time)</div>
-            <table class="cal-table">
-              <thead>
-                <tr>
-                  <th>Plataforma</th>
-                  <th>Lun</th><th>Mar</th><th>Mié</th><th>Jue</th><th>Vie</th>
-                  <th>Hora (ET)</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td><div class="platform-icon-sm icon-ig">📸</div> Instagram</td>
-                  <td><input type="checkbox" id="ig-mon" checked></td>
-                  <td><input type="checkbox" id="ig-tue" checked></td>
-                  <td><input type="checkbox" id="ig-wed" checked></td>
-                  <td><input type="checkbox" id="ig-thu" checked></td>
-                  <td><input type="checkbox" id="ig-fri" checked></td>
-                  <td><select id="ig-hour">
-                    <option value="7">7:00 AM</option><option value="8">8:00 AM</option>
-                    <option value="9" selected>9:00 AM</option><option value="10">10:00 AM</option>
-                    <option value="11">11:00 AM</option><option value="12">12:00 PM</option>
-                    <option value="18">6:00 PM</option><option value="19">7:00 PM</option>
-                  </select></td>
-                </tr>
-                <tr>
-                  <td><div class="platform-icon-sm icon-fb">👍</div> Facebook</td>
-                  <td><input type="checkbox" id="fb-mon" checked></td>
-                  <td><input type="checkbox" id="fb-tue" checked></td>
-                  <td><input type="checkbox" id="fb-wed" checked></td>
-                  <td><input type="checkbox" id="fb-thu" checked></td>
-                  <td><input type="checkbox" id="fb-fri" checked></td>
-                  <td><select id="fb-hour">
-                    <option value="7">7:00 AM</option><option value="8">8:00 AM</option>
-                    <option value="9">9:00 AM</option><option value="10" selected>10:00 AM</option>
-                    <option value="11">11:00 AM</option><option value="12">12:00 PM</option>
-                    <option value="18">6:00 PM</option><option value="19">7:00 PM</option>
-                  </select></td>
-                </tr>
-                <tr>
-                  <td><div class="platform-icon-sm icon-li">💼</div> LinkedIn</td>
-                  <td><input type="checkbox" id="li-mon"></td>
-                  <td><input type="checkbox" id="li-tue"></td>
-                  <td><input type="checkbox" id="li-wed" checked></td>
-                  <td><input type="checkbox" id="li-thu"></td>
-                  <td><input type="checkbox" id="li-fri"></td>
-                  <td><select id="li-hour">
-                    <option value="7">7:00 AM</option><option value="8" selected>8:00 AM</option>
-                    <option value="9">9:00 AM</option><option value="10">10:00 AM</option>
-                    <option value="11">11:00 AM</option><option value="12">12:00 PM</option>
-                  </select></td>
-                </tr>
-              </tbody>
-            </table>
-            <small style="color:var(--muted);display:block;margin-top:12px">Todos los horarios en Eastern Time (ET). El scheduler publica automáticamente los posts aprobados en su hora asignada.</small>
-          </div>
-        </div>
-
-        <!-- ─── TAB: OBJETIVOS ─── -->
-        <div class="tab-pane" id="tab-objetivos">
-          <div class="section">
-            <div class="section-title"><span>📊</span> KPIs por Período — 30 / 60 / 90 Días</div>
-            <div class="goals-cols">
-              <div class="goal-col" id="goal-col-30">
-                <div class="goal-col-header" style="background:#EEF2FF">
-                  <div class="goal-period" style="color:var(--purple)">30 días</div>
-                  <div class="goal-phase">Fase 1 · Posicionamiento</div>
-                </div>
-                <div class="goal-body">
-                  <div class="goal-group-title">Instagram</div>
-                  <div class="goal-field"><label>Seguidores meta</label><input type="number" id="g30-ig-followers" min="0" placeholder="500"></div>
-                  <div class="goal-field"><label>Engagement rate %</label><input type="number" id="g30-ig-eng" min="0" step="0.1" placeholder="4.0"></div>
-                  <div class="goal-group-title">Facebook</div>
-                  <div class="goal-field"><label>Alcance promedio</label><input type="number" id="g30-fb-reach" min="0" placeholder="1000"></div>
-                  <div class="goal-field"><label>Interacciones</label><input type="number" id="g30-fb-eng" min="0" placeholder="200"></div>
-                  <div class="goal-group-title">LinkedIn</div>
-                  <div class="goal-field"><label>Seguidores</label><input type="number" id="g30-li-followers" min="0" placeholder="100"></div>
-                  <div class="goal-group-title">Negocio</div>
-                  <div class="goal-field"><label>Leads generados</label><input type="number" id="g30-leads" min="0" placeholder="10"></div>
-                  <div class="goal-field"><label>Clientes cerrados</label><input type="number" id="g30-clients" min="0" placeholder="2"></div>
-                  <div class="goal-field"><label>Ingresos USD $</label><input type="number" id="g30-revenue" min="0" placeholder="3000"></div>
-                </div>
-              </div>
-              <div class="goal-col" id="goal-col-60">
-                <div class="goal-col-header" style="background:#ECFDF5">
-                  <div class="goal-period" style="color:var(--green)">60 días</div>
-                  <div class="goal-phase">Fase 2 · Tracción</div>
-                </div>
-                <div class="goal-body">
-                  <div class="goal-group-title">Instagram</div>
-                  <div class="goal-field"><label>Seguidores meta</label><input type="number" id="g60-ig-followers" min="0" placeholder="1500"></div>
-                  <div class="goal-field"><label>Engagement rate %</label><input type="number" id="g60-ig-eng" min="0" step="0.1" placeholder="5.0"></div>
-                  <div class="goal-group-title">Facebook</div>
-                  <div class="goal-field"><label>Alcance promedio</label><input type="number" id="g60-fb-reach" min="0" placeholder="3000"></div>
-                  <div class="goal-field"><label>Interacciones</label><input type="number" id="g60-fb-eng" min="0" placeholder="600"></div>
-                  <div class="goal-group-title">LinkedIn</div>
-                  <div class="goal-field"><label>Seguidores</label><input type="number" id="g60-li-followers" min="0" placeholder="300"></div>
-                  <div class="goal-group-title">Negocio</div>
-                  <div class="goal-field"><label>Leads generados</label><input type="number" id="g60-leads" min="0" placeholder="25"></div>
-                  <div class="goal-field"><label>Clientes cerrados</label><input type="number" id="g60-clients" min="0" placeholder="5"></div>
-                  <div class="goal-field"><label>Ingresos USD $</label><input type="number" id="g60-revenue" min="0" placeholder="8000"></div>
-                </div>
-              </div>
-              <div class="goal-col" id="goal-col-90">
-                <div class="goal-col-header" style="background:#FFF7ED">
-                  <div class="goal-period" style="color:var(--yellow)">90 días</div>
-                  <div class="goal-phase">Fase 3 · Conversión</div>
-                </div>
-                <div class="goal-body">
-                  <div class="goal-group-title">Instagram</div>
-                  <div class="goal-field"><label>Seguidores meta</label><input type="number" id="g90-ig-followers" min="0" placeholder="3500"></div>
-                  <div class="goal-field"><label>Engagement rate %</label><input type="number" id="g90-ig-eng" min="0" step="0.1" placeholder="6.5"></div>
-                  <div class="goal-group-title">Facebook</div>
-                  <div class="goal-field"><label>Alcance promedio</label><input type="number" id="g90-fb-reach" min="0" placeholder="8000"></div>
-                  <div class="goal-field"><label>Interacciones</label><input type="number" id="g90-fb-eng" min="0" placeholder="1500"></div>
-                  <div class="goal-group-title">LinkedIn</div>
-                  <div class="goal-field"><label>Seguidores</label><input type="number" id="g90-li-followers" min="0" placeholder="600"></div>
-                  <div class="goal-group-title">Negocio</div>
-                  <div class="goal-field"><label>Leads generados</label><input type="number" id="g90-leads" min="0" placeholder="50"></div>
-                  <div class="goal-field"><label>Clientes cerrados</label><input type="number" id="g90-clients" min="0" placeholder="10"></div>
-                  <div class="goal-field"><label>Ingresos USD $</label><input type="number" id="g90-revenue" min="0" placeholder="20000"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="section">
-            <div class="section-title"><span>🗓</span> Nombre de las Fases</div>
-            <div class="form-grid form-grid-3">
-              <div class="field"><label>Nombre Fase 1 (Días 1-30)</label><input type="text" id="f-phase1" value="Posicionamiento" placeholder="ej: Posicionamiento"></div>
-              <div class="field"><label>Nombre Fase 2 (Días 31-60)</label><input type="text" id="f-phase2" value="Tracción" placeholder="ej: Tracción"></div>
-              <div class="field"><label>Nombre Fase 3 (Días 61-90)</label><input type="text" id="f-phase3" value="Conversión" placeholder="ej: Conversión"></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ─── TAB: ESTRATEGIA ─── -->
-        <div class="tab-pane" id="tab-estrategia">
-          <!-- Performance mini-dashboard -->
-          <div class="section">
-            <div class="section-title"><span>📈</span> Rendimiento Actual</div>
-            <div class="perf-grid">
-              <div class="perf-card"><div class="perf-num" id="perf-published">—</div><div class="perf-label">Posts publicados (mes)</div></div>
-              <div class="perf-card"><div class="perf-num" id="perf-pending">—</div><div class="perf-label">Aprobados pendientes</div></div>
-              <div class="perf-card"><div class="perf-num" id="perf-engagement">—</div><div class="perf-label">Engagement promedio %</div></div>
-              <div class="perf-card"><div class="perf-num" id="perf-failed">—</div><div class="perf-label">Errores</div></div>
-            </div>
-          </div>
-
-          <!-- Action cards -->
-          <div class="action-cards">
-            <div class="action-card">
-              <div class="action-icon">🗺</div>
-              <div class="action-title">Plan Estratégico 90 Días</div>
-              <div class="action-desc">Genera la estrategia maestra con fases, pilares de contenido, tácticas de crecimiento y plan de conversión basado en tendencias y competidores actuales.</div>
-              <div class="action-status none" id="status-90days">Sin generar</div>
-              <button class="action-btn" onclick="generateStrategy('90days')" id="btn-90days">Generar Plan 90 Días</button>
-            </div>
-            <div class="action-card">
-              <div class="action-icon">📅</div>
-              <div class="action-title">Plan Mensual</div>
-              <div class="action-desc">Actualiza el plan del mes basado en el rendimiento previo, tendencias actuales y la fase estratégica en curso. Define el tema y énfasis del mes.</div>
-              <div class="action-status none" id="status-monthly">Sin generar</div>
-              <button class="action-btn" onclick="generateStrategy('monthly')" id="btn-monthly">Actualizar Plan Mensual</button>
-            </div>
-            <div class="action-card">
-              <div class="action-icon">⚡</div>
-              <div class="action-title">Contenido Semanal</div>
-              <div class="action-desc">Genera los 11 posts de la semana (5 IG + 5 FB + 1 LinkedIn) con imágenes, videos y audio. Se retroalimenta del rendimiento de publicaciones anteriores.</div>
-              <div class="action-status none" id="status-weekly">Sin generar esta semana</div>
-              <button class="action-btn" onclick="generateStrategy('weekly')" id="btn-weekly">⚡ Generar Semana</button>
-            </div>
-          </div>
-
-          <!-- System prompt (advanced) -->
-          <div class="section">
-            <div class="section-title"><span>🤖</span> Prompt del Agente <small class="section-subtitle">Instrucciones que recibe el agente IA para esta marca</small></div>
-            <div style="display:flex;gap:10px;margin-bottom:12px">
-              <button class="btn btn-ghost" style="font-size:12px" onclick="generateSystemPrompt()">Auto-generar desde brief</button>
-              <span style="font-size:12px;color:var(--muted);align-self:center">o edita manualmente:</span>
-            </div>
-            <div class="field">
-              <textarea class="tall" id="f-system-prompt" style="min-height:200px;font-family:monospace;font-size:12px" placeholder="El agente IA recibirá este texto como instrucciones de sistema. Se genera automáticamente desde el brief de la marca, pero puedes editarlo."></textarea>
-            </div>
-          </div>
-
-          <!-- Strategy text -->
-          <div class="section">
-            <div class="section-title"><span>📖</span> Estrategia 90 Días</div>
-            <div class="field">
-              <textarea class="tall" id="f-strategy-90days" style="min-height:480px;font-family:monospace;font-size:12.5px;line-height:1.6;white-space:pre-wrap" placeholder="Haz clic en 'Generar Plan 90 Días' para crear la estrategia maestra. También puedes escribirla manualmente."></textarea>
-            </div>
-          </div>
-
-          <div class="section">
-            <div class="section-title"><span>📅</span> Plan Mensual</div>
-            <div class="field">
-              <textarea class="tall" id="f-monthly-plan" style="min-height:320px;font-family:monospace;font-size:12.5px;line-height:1.6;white-space:pre-wrap" placeholder="Haz clic en 'Actualizar Plan Mensual' para generar el plan del mes actual. Se retroalimenta del rendimiento anterior."></textarea>
-            </div>
-          </div>
-        </div>
-
-        <!-- ─── TAB: MEDIOS ─── -->
-        <div class="tab-pane" id="tab-medios">
-          <div class="section">
-            <div class="section-title"><span>📸</span> Biblioteca de Medios <small class="section-subtitle">Fotos y videos reales de la marca — el agente los usa al crear contenido</small></div>
-            <div class="media-upload-zone" id="media-drop-zone">
-              <div style="font-size:32px;margin-bottom:8px">📁</div>
-              <div style="font-weight:600;font-size:14px;margin-bottom:4px">Arrastra fotos y videos aquí</div>
-              <div style="color:var(--muted);font-size:12px">PNG, JPG, WEBP, MP4, MOV — múltiples archivos a la vez</div>
-              <input type="file" id="media-file-input" multiple accept=".png,.jpg,.jpeg,.webp,.gif,.mp4,.mov,.webm" style="display:none" onchange="if(this.files.length) uploadMediaFiles(this.files)">
-              <label for="media-file-input" class="btn btn-primary" style="margin-top:12px;font-size:12px;padding:8px 16px;cursor:pointer;display:inline-block">Seleccionar archivos</label>
-            </div>
-            <div id="media-upload-progress" style="display:none;margin-top:10px">
-              <div class="progress-bar-wrap"><div class="progress-bar-fill" id="media-progress-fill"></div></div>
-              <small id="media-progress-label" style="color:var(--muted)"></small>
-            </div>
-          </div>
-          <div class="section">
-            <div class="section-title"><span>🖼</span> Assets subidos <span id="media-count-badge" class="brand-stats-pill" style="margin-left:8px">0</span></div>
-            <div class="media-filter-bar">
-              <button class="media-filter-btn active" onclick="filterMedia('all',this)">Todos</button>
-              <button class="media-filter-btn" onclick="filterMedia('image',this)">📸 Imágenes</button>
-              <button class="media-filter-btn" onclick="filterMedia('video',this)">🎬 Videos</button>
-            </div>
-            <div class="media-empty" id="media-empty">No hay assets todavía. Sube las fotos y videos de la marca.</div>
-            <div class="media-grid" id="media-grid"></div>
-          </div>
-        </div>
-
-        <!-- ─── TAB: CAMPAÑA ─── -->
-        <div class="tab-pane" id="tab-campana">
-          <!-- Month selector -->
-          <div class="section">
-            <div class="section-title"><span>📣</span> Campaña del Mes <small class="section-subtitle">El agente integra esta información en la estrategia y los contenidos semanales</small></div>
-            <div style="display:flex;gap:12px;align-items:center;margin-bottom:20px;flex-wrap:wrap">
-              <select id="camp-month" onchange="loadCampaign()" style="padding:8px 12px;border-radius:8px;border:1.5px solid var(--border);font-size:13px">
-                <option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option>
-                <option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option>
-                <option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option>
-                <option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
-              </select>
-              <select id="camp-year" onchange="loadCampaign()" style="padding:8px 12px;border-radius:8px;border:1.5px solid var(--border);font-size:13px">
-                <option value="2026">2026</option><option value="2027">2027</option>
-              </select>
-              <button class="btn btn-primary" style="padding:8px 18px;font-size:13px" onclick="saveCampaign()">💾 Guardar campaña</button>
-            </div>
-
-            <!-- Product section -->
-            <div class="camp-section-header">🛍 Producto o Servicio a Promocionar</div>
-            <div class="form-grid form-grid-2">
-              <div class="field">
-                <label>Nombre del producto / servicio *</label>
-                <input type="text" id="camp-product-name" placeholder="Ej: Plan Explorer — 2 cafés/mes · $79">
-              </div>
-              <div class="field">
-                <label>Precio</label>
-                <input type="text" id="camp-product-price" placeholder="Ej: $79/mes · 3x$69 · Gratis primer mes">
-              </div>
-              <div class="field" style="grid-column:1/-1">
-                <label>Descripción del producto (para el agente)</label>
-                <textarea id="camp-product-desc" style="min-height:80px" placeholder="Qué incluye, para quién es, qué lo hace diferente, por qué deberían comprarlo ahora"></textarea>
-              </div>
-              <div class="field" style="grid-column:1/-1">
-                <label>Imagen principal del producto <small style="color:var(--muted)">(selecciona de tu biblioteca)</small></label>
-                <div class="product-image-selector" id="product-img-selector">
-                  <div id="product-img-preview" style="display:none">
-                    <img id="product-img-thumb" style="max-height:80px;border-radius:8px;margin-right:12px">
-                    <span id="product-img-name" style="font-size:12px;color:var(--muted)"></span>
-                    <button onclick="clearProductImage()" style="margin-left:8px;border:none;background:none;color:var(--red);cursor:pointer;font-size:16px">✕</button>
-                  </div>
-                  <div id="product-img-empty" style="color:var(--muted);font-size:13px">
-                    <button class="btn-secondary" style="padding:8px 14px;font-size:12px" onclick="openMediaPicker()">🖼 Seleccionar de biblioteca</button>
-                  </div>
-                </div>
-                <input type="hidden" id="camp-product-media-id">
-              </div>
-            </div>
-
-            <!-- Promo section -->
-            <div class="camp-section-header" style="margin-top:20px">💰 Estrategia de Precio / Promoción</div>
-            <div class="form-grid form-grid-2">
-              <div class="field">
-                <label>Tipo de promoción</label>
-                <select id="camp-promo-type" style="width:100%">
-                  <option value="">Sin promoción especial</option>
-                  <option value="descuento">Descuento directo</option>
-                  <option value="lanzamiento">Lanzamiento de producto</option>
-                  <option value="temporada">Oferta de temporada</option>
-                  <option value="bundle">Bundle / Paquete</option>
-                  <option value="free_trial">Prueba gratuita</option>
-                  <option value="referidos">Programa de referidos</option>
-                  <option value="flash">Venta flash / Urgencia</option>
-                  <option value="edicion_limitada">Edición limitada</option>
-                  <option value="lealtad">Recompensa a clientes actuales</option>
-                </select>
-              </div>
-              <div class="field">
-                <label>Descuento %</label>
-                <input type="number" id="camp-discount-pct" min="0" max="100" placeholder="Ej: 20">
-              </div>
-              <div class="field" style="grid-column:1/-1">
-                <label>Detalles de la oferta</label>
-                <textarea id="camp-promo-details" style="min-height:70px" placeholder="Ej: 20% OFF en el primer mes con código AROMA20 · Solo hasta el 30 de junio · Incluye envío gratis"></textarea>
-              </div>
-            </div>
-
-            <!-- Campaign goals -->
-            <div class="camp-section-header" style="margin-top:20px">🎯 Objetivo y Audiencia</div>
-            <div class="form-grid form-grid-2">
-              <div class="field">
-                <label>Meta principal de la campaña</label>
-                <select id="camp-goal" style="width:100%">
-                  <option value="">Selecciona una meta</option>
-                  <option value="nuevos_clientes">Captar nuevos clientes</option>
-                  <option value="reactivar">Reactivar clientes inactivos</option>
-                  <option value="upsell">Upgrade de plan existente</option>
-                  <option value="awareness">Reconocimiento de marca</option>
-                  <option value="lista_espera">Lista de espera / Waitlist</option>
-                  <option value="comunidad">Crecimiento de comunidad</option>
-                  <option value="ventas_directas">Ventas directas</option>
-                </select>
-              </div>
-              <div class="field">
-                <label>Segmento objetivo</label>
-                <input type="text" id="camp-segment" placeholder="Ej: Marcus (profesionales 28-38) · Suscriptores actuales del plan Basic">
-              </div>
-              <div class="field">
-                <label>Fechas de la campaña</label>
-                <input type="text" id="camp-dates" placeholder="Ej: 15-30 de junio · Todo el mes · Solo fin de semana">
-              </div>
-              <div class="field">
-                <label>Notas adicionales para el agente</label>
-                <input type="text" id="camp-notes" placeholder="Restricciones, tono especial, palabras clave a usar o evitar...">
-              </div>
-            </div>
-          </div>
-
-          <!-- Evaluate button -->
-          <div class="section" style="background:linear-gradient(135deg,#F0FDF4,#ECFDF5);border:1px solid #6EE7B7">
-            <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
-              <div style="flex:1;min-width:200px">
-                <div style="font-weight:700;font-size:14px;color:#065F46;margin-bottom:4px">🤖 Evaluar impacto con IA</div>
-                <div style="font-size:12px;color:#047857">Claude analiza la campaña y genera sugerencias de mejora una a una para tu aprobación</div>
-              </div>
-              <button class="btn-analyze" id="btn-evaluate" onclick="evaluateCampaign()" style="background:linear-gradient(135deg,#065F46,#059669)">
-                <span>🔍</span> Evaluar campaña
-              </button>
-            </div>
-          </div>
-
-          <!-- Suggestions panel -->
-          <div id="suggestions-panel" style="display:none" class="section">
-            <div class="section-title"><span>💡</span> Sugerencias de mejora — <span id="sug-progress-label">Revisa y decide cada una</span></div>
-            <!-- Score summary -->
-            <div id="sug-score-bar" style="display:none;background:#F9FAFB;border-radius:10px;padding:16px;margin-bottom:16px;display:flex;gap:24px;flex-wrap:wrap">
-              <div style="text-align:center"><div style="font-size:28px;font-weight:800;color:var(--purple)" id="sug-score">—</div><div style="font-size:11px;color:var(--muted)">Puntaje</div></div>
-              <div style="flex:1;min-width:200px">
-                <div style="font-size:13px;color:var(--text);margin-bottom:6px" id="sug-rationale"></div>
-                <div style="font-size:12px;color:#059669" id="sug-estimates"></div>
-              </div>
-              <div style="min-width:160px">
-                <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:4px">RIESGOS IDENTIFICADOS</div>
-                <ul id="sug-risks" style="font-size:12px;color:var(--red);padding-left:16px;margin:0"></ul>
-              </div>
-            </div>
-            <!-- Suggestion card -->
-            <div id="sug-card" style="display:none;border:1.5px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:16px">
-              <div class="sug-card-header">
-                <div style="display:flex;align-items:center;gap:10px">
-                  <span id="sug-num" style="font-size:11px;color:rgba(255,255,255,0.7)"></span>
-                  <span id="sug-category-badge" class="sug-badge"></span>
-                  <span id="sug-impact-badge" class="sug-badge"></span>
-                </div>
-                <div id="sug-title" style="font-size:15px;font-weight:700;color:white;margin-top:6px"></div>
-              </div>
-              <div style="padding:16px">
-                <div style="margin-bottom:10px">
-                  <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:3px">PROBLEMA DETECTADO</div>
-                  <div id="sug-problem" style="font-size:13px;color:var(--text)"></div>
-                </div>
-                <div style="margin-bottom:10px">
-                  <div style="font-size:11px;font-weight:700;color:var(--purple);margin-bottom:3px">SUGERENCIA</div>
-                  <div id="sug-suggestion" style="font-size:13px;color:var(--text);font-weight:500"></div>
-                </div>
-                <div style="background:#F9FAFB;border-radius:8px;padding:10px">
-                  <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:3px">EJEMPLO APLICADO</div>
-                  <div id="sug-example" style="font-size:12.5px;color:var(--text);font-style:italic"></div>
-                </div>
-              </div>
-              <div style="padding:12px 16px;background:#F9FAFB;border-top:1px solid var(--border);display:flex;gap:10px">
-                <button class="btn-green" onclick="decideSuggestion('approved')" style="flex:1">✓ Aprobar</button>
-                <button class="btn-secondary" onclick="decideSuggestion('rejected')" style="flex:1">✕ Descartar</button>
-              </div>
-            </div>
-            <!-- Final summary -->
-            <div id="sug-done" style="display:none;background:#F0FDF4;border:1px solid #6EE7B7;border-radius:10px;padding:16px">
-              <div style="font-weight:700;color:#065F46;margin-bottom:8px">✓ Revisión completada</div>
-              <div id="sug-done-text" style="font-size:13px;color:#047857"></div>
-              <button class="btn-green" style="margin-top:12px" onclick="applySuggestionsToContent()">⚡ Generar semana con estas mejoras</button>
-            </div>
-          </div>
-        </div>
-
-      </div><!-- /form-scroll -->
-
-      <!-- SAVE BAR -->
-      <div class="save-bar">
-        <button class="btn btn-primary" onclick="saveBrand()">💾 Guardar Marca</button>
-        <button class="btn btn-ghost" onclick="generateSystemPrompt()">Auto-generar prompt</button>
-        <span class="save-hint" id="save-hint">Los cambios no guardados se perderán al cambiar de marca.</span>
-      </div>
-
-    </div><!-- /brand-area -->
-  </main>
+      <div id="rp-results" style="display:none"></div>
+    </div>
+  </div>
 </div>
 
 <div id="toast"></div>
 
 <script>
-// ── State ─────────────────────────────────────────────────────────────────
-const tagsData = { values: [], hashtags: [], voice_adjectives: [], differentiators: [] };
 let currentBrandId = null;
-let brands = [];
+let isNewBrand = false;
 
-// ── Init ──────────────────────────────────────────────────────────────────
-document.addEventListener("DOMContentLoaded", async () => {
-  setupTabs();
-  setupColorSync();
-  await loadBrandsList();
-  // Auto-select first brand if one exists
-  if (brands.length > 0) {
-    selectBrand(brands[0].id);
-  }
-});
-
-// ── Tabs ──────────────────────────────────────────────────────────────────
-function setupTabs() {
-  document.querySelectorAll(".tab-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
-      document.querySelectorAll(".tab-pane").forEach(p => p.classList.remove("active"));
-      btn.classList.add("active");
-      document.getElementById("tab-" + btn.dataset.tab).classList.add("active");
-      if (btn.dataset.tab === "estrategia" && currentBrandId) loadBrandStats(currentBrandId);
-    });
-  });
+function toast(msg, err) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.borderColor = err ? '#ef4444' : 'rgba(255,255,255,.12)';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3500);
 }
 
-// ── Brand list ────────────────────────────────────────────────────────────
-async function loadBrandsList() {
-  try {
-    const r = await fetch("/api/brands");
-    brands = await r.json();
-    const list = document.getElementById("brands-list");
-    if (!brands.length) {
-      list.innerHTML = '<div style="color:rgba(255,255,255,0.3);font-size:12px;padding:12px">Ninguna marca creada</div>';
-      return;
-    }
-    list.innerHTML = brands.map(b => `
-      <div class="brand-card ${b.id === currentBrandId ? 'active' : ''}" onclick="selectBrand('${b.id}')">
-        <div class="brand-dot" style="background:${b.color || '#635BFF'}">🏢</div>
-        <div class="brand-info">
-          <div class="brand-name">${b.name}</div>
-          <div class="brand-industry">${b.tagline || 'Sin tagline'}</div>
-        </div>
-      </div>`).join("");
-  } catch (e) { console.error(e); }
-}
-
-// ── Select brand ──────────────────────────────────────────────────────────
-async function selectBrand(brandId) {
-  currentBrandId = brandId;
-  localStorage.setItem("currentBrand", brandId);
-  const r = await fetch(`/api/brands/${brandId}`);
-  if (!r.ok) { toast("Error cargando marca", "error"); return; }
-  const { config, stats } = await r.json();
-  fillForm(config, stats);
-  showBrandArea();
-  loadBrandsList();
-  loadMedia();
-  loadCampaign();
+function setActiveItem(id) {
+  document.querySelectorAll('.brand-item').forEach(el => el.classList.remove('active'));
+  if (id) document.getElementById(`item-${id}`)?.classList.add('active');
 }
 
 function newBrand() {
+  isNewBrand = true;
   currentBrandId = null;
-  clearForm();
-  showBrandArea();
-  document.getElementById("delete-btn").style.display = "none";
-  document.getElementById("tb-name").textContent = "Nueva Marca";
-  document.getElementById("tb-tag").textContent = "";
-  loadBrandsList();
+  setActiveItem(null);
+  document.getElementById('research-btn').disabled = true;
+  renderForm(null);
 }
 
-function showBrandArea() {
-  document.getElementById("empty-main").style.display = "none";
-  document.getElementById("brand-area").style.display = "flex";
-}
+async function selectBrand(id) {
+  isNewBrand = false;
+  currentBrandId = id;
+  setActiveItem(id);
+  document.getElementById('research-btn').disabled = false;
 
-// ── Fill form ─────────────────────────────────────────────────────────────
-function fillForm(c, stats) {
-  v("f-id", c.id || "");
-  v("f-name", c.name || "");
-  v("f-tagline", c.tagline || "");
-  v("f-industry", c.industry || "");
-  v("f-geography", c.geography || "");
-  v("f-description", c.description || "");
-  v("f-mission", c.mission || "");
-  v("f-logo-url", c.logo_url || "");
-  // Logo preview
-  const logoPreview = document.getElementById("logo-preview");
-  const logoPlaceholder = document.getElementById("logo-placeholder");
-  if (c.logo_url) {
-    logoPreview.src = c.logo_url;
-    logoPreview.style.display = "block";
-    logoPlaceholder.style.display = "none";
-  } else {
-    logoPreview.src = "";
-    logoPreview.style.display = "none";
-    logoPlaceholder.style.display = "block";
-  }
-  // Social fields
-  const soc = c.social_urls || {};
-  v("f-website", c.website_url || "");
-  v("f-social-instagram", soc.instagram || "");
-  v("f-social-facebook", soc.facebook || "");
-  v("f-social-linkedin", soc.linkedin || "");
-  v("f-social-tiktok", soc.tiktok || "");
-  v("f-social-youtube", soc.youtube || "");
-  v("f-social-store", soc.store || "");
-  // Manual status
-  if (c.manual_path) {
-    document.getElementById("manual-placeholder").style.display = "none";
-    document.getElementById("manual-loaded").style.display = "block";
-    document.getElementById("manual-name").textContent = c.manual_path.split(/[\\/]/).pop();
-    document.getElementById("manual-chars").textContent = `${(c.manual_text_preview||"").length} caracteres extraídos`;
-  }
-  v("f-usp", c.positioning?.usp || "");
-  v("f-voice-avoid", c.voice?.avoid || "");
-  v("f-voice-good", c.voice?.examples_good || "");
-  v("f-voice-bad", c.voice?.examples_bad || "");
-  v("f-system-prompt", c.system_prompt || "");
-  v("f-strategy-90days", c.strategy_90days || "");
-  v("f-monthly-plan", c.monthly_plan || "");
-  v("f-audience-geo", c.audience?.geography || "");
-  v("f-phase1", c.phase_names?.[0] || "Posicionamiento");
-  v("f-phase2", c.phase_names?.[1] || "Tracción");
-  v("f-phase3", c.phase_names?.[2] || "Conversión");
-
-  // Color
-  const color = c.color || "#635BFF";
-  document.getElementById("f-color").value = color;
-  document.getElementById("f-color-hex").value = color;
-
-  // Text color radio
-  const tc = c.text_color || "#FFFFFF";
-  document.querySelectorAll('[name=text_color]').forEach(r => r.checked = r.value === tc);
-
-  // Formality slider
-  const fval = Math.round((c.voice?.formality || 0.4) * 10);
-  document.getElementById("f-formality").value = fval;
-  document.getElementById("formality-val").textContent = fval;
-
-  // Emoji use
-  const em = c.voice?.emoji_use || "moderado";
-  document.querySelectorAll('[name=emoji_use]').forEach(r => r.checked = r.value === em);
-
-  // Language
-  const lang = c.audience?.language || "es";
-  document.querySelectorAll('[name=lang]').forEach(r => r.checked = r.value === lang);
-
-  // Channels
-  const channels = c.audience?.channels || [];
-  document.querySelectorAll('.check-group input[type=checkbox]').forEach(cb => {
-    cb.checked = channels.includes(cb.value);
-  });
-
-  // Tags
-  setTags("tags-values", "values", c.values || []);
-  setTags("tags-hashtags", "hashtags", c.hashtags || []);
-  setTags("tags-voice", "voice_adjectives", c.voice?.adjectives || []);
-  setTags("tags-diff", "differentiators", c.positioning?.differentiators || []);
-
-  // Personas
-  const personas = c.audience?.personas || [];
-  for (let i = 0; i < 3; i++) {
-    const p = personas[i] || {};
-    v(`p${i}-name`, p.name || ""); v(`p${i}-age`, p.age || "");
-    v(`p${i}-job`, p.occupation || ""); v(`p${i}-income`, p.income || "");
-    v(`p${i}-pain`, p.pain || ""); v(`p${i}-goal`, p.goal || "");
-  }
-
-  // Competitors
-  const comps = c.positioning?.competitors || [];
-  for (let i = 0; i < 3; i++) {
-    const comp = comps[i] || {};
-    v(`c${i}-name`, comp.name || "");
-    v(`c${i}-weakness`, comp.weakness || "");
-    v(`c${i}-url`, comp.url || "");
-  }
-
-  // Calendar
-  const sched = c.posting_schedule || {};
-  fillSchedule("ig", sched.instagram);
-  fillSchedule("fb", sched.facebook);
-  fillSchedule("li", sched.linkedin);
-
-  // Goals
-  const goals = c.goals || {};
-  fillGoals("30", goals["30"]);
-  fillGoals("60", goals["60"]);
-  fillGoals("90", goals["90"]);
-
-  // Credentials
-  const creds = c.credentials || {};
-  v("f-ig-id", creds.instagram_business_account_id || "");
-  v("f-fb-id", creds.facebook_page_id || "");
-  v("f-fb-token", creds.facebook_page_access_token || "");
-  v("f-meta-token", creds.meta_access_token || "");
-  v("f-li-token", creds.linkedin_access_token || "");
-  v("f-li-org", creds.linkedin_organization_id || "");
-
-  // Topbar
-  document.getElementById("tb-name").textContent = c.name;
-  document.getElementById("tb-tag").textContent = c.tagline || c.industry || "";
-  document.getElementById("tb-color").style.background = color;
-  document.getElementById("delete-btn").style.display = "inline-flex";
-
-  // Content link
-  document.getElementById("content-link").href = `/?brand=${c.id}`;
-
-  // Stats
-  if (stats) {
-    document.getElementById("perf-published").textContent = stats.published_month || 0;
-    document.getElementById("perf-pending").textContent = stats.pending || 0;
-    const eng = stats.avg_engagement;
-    document.getElementById("perf-engagement").textContent = eng ? eng.toFixed(1) + "%" : "—";
-    document.getElementById("perf-failed").textContent = stats.failed || 0;
+  const r = await fetch(`/api/brands/${id}`);
+  const brand = await r.json();
+  renderForm(brand);
+  if (brand.last_research) renderResearch(brand);
+  else {
+    document.getElementById('rp-results').style.display = 'none';
+    document.getElementById('rp-empty').style.display = 'block';
+    document.getElementById('rp-empty').innerHTML = 'Haz clic en <strong>Generar</strong> para iniciar la investigación de esta marca.';
   }
 }
 
-function fillSchedule(prefix, sched) {
-  if (!sched) return;
-  const days = sched.days || [];
-  ["mon","tue","wed","thu","fri"].forEach(d => {
-    const el = document.getElementById(`${prefix}-${d}`);
-    if (el) el.checked = days.includes(d);
-  });
-  const hourEl = document.getElementById(`${prefix}-hour`);
-  if (hourEl) hourEl.value = sched.hour ?? "";
+function renderForm(b) {
+  const isNew = !b;
+  const m = document.getElementById('main-area');
+  m.innerHTML = `
+  <div class="form-panel">
+    <div class="panel-title">${isNew ? 'Nueva marca' : b.name}</div>
+    <div class="panel-sub">${isNew ? 'Completa los datos básicos — la IA investigará el resto.' : 'Edita la configuración de la marca.'}</div>
+
+    <div class="form-grid">
+      ${isNew ? `<div class="field"><label>ID DE MARCA</label><input id="f-id" placeholder="ej: voxifyhub" oninput="slugify(this)"><small>Solo letras minúsculas, números y _</small></div>` : ''}
+      <div class="field ${isNew ? '' : 'form-full'}"><label>NOMBRE</label><input id="f-name" placeholder="Nombre de la marca" value="${esc(b?.name)}"></div>
+      <div class="field form-full"><label>TAGLINE</label><input id="f-tagline" placeholder="Frase que define la marca" value="${esc(b?.tagline)}"></div>
+      <div class="field form-full"><label>DESCRIPCIÓN</label><textarea id="f-description" placeholder="Descripción, productos y servicios...">${esc(b?.description)}</textarea></div>
+      <div class="field"><label>INDUSTRIA</label><input id="f-industry" placeholder="ej: Café / Alimentos" value="${esc(b?.industry)}"></div>
+      <div class="field"><label>MERCADO / GEOGRAFÍA</label><input id="f-geography" placeholder="ej: Miami, Florida" value="${esc(b?.geography || 'United States')}"></div>
+      <div class="field"><label>SITIO WEB</label><input id="f-website" placeholder="https://..." value="${esc(b?.website_url)}"></div>
+      <div class="field"><label>INSTAGRAM HANDLE</label><input id="f-handle" placeholder="@marca" value="${esc(b?.instagram_handle)}"></div>
+      <div class="field form-full"><label>MISIÓN</label><textarea id="f-mission" placeholder="Misión de la marca...">${esc(b?.mission)}</textarea></div>
+      <div class="field"><label>COLOR DE MARCA</label><input type="color" id="f-color" value="${b?.color || '#635BFF'}"></div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="section-title">CREDENCIALES META (INSTAGRAM / FACEBOOK)</div>
+
+    <div class="form-grid">
+      <div class="field form-full"><label>META ACCESS TOKEN</label><input id="f-token" type="password" placeholder="EAAcyse..." value="${esc(b?.meta_access_token)}"></div>
+      <div class="field"><label>INSTAGRAM ACCOUNT ID</label><input id="f-ig-id" placeholder="17841..." value="${esc(b?.instagram_account_id)}"></div>
+      <div class="field"><label>FACEBOOK PAGE ID</label><input id="f-fb-id" placeholder="1070..." value="${esc(b?.facebook_page_id)}"></div>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn btn-save" onclick="saveBrand()">💾 Guardar</button>
+      ${!isNew ? `<button class="btn btn-delete" onclick="deleteBrand()">Eliminar marca</button>` : ''}
+    </div>
+  </div>`;
 }
 
-function fillGoals(period, g) {
-  if (!g) return;
-  const p = period;
-  nv(`g${p}-ig-followers`, g.instagram_followers);
-  nv(`g${p}-ig-eng`, g.instagram_engagement_rate);
-  nv(`g${p}-fb-reach`, g.facebook_reach);
-  nv(`g${p}-fb-eng`, g.facebook_interactions);
-  nv(`g${p}-li-followers`, g.linkedin_followers);
-  nv(`g${p}-leads`, g.leads);
-  nv(`g${p}-clients`, g.clients);
-  nv(`g${p}-revenue`, g.revenue_usd);
+function esc(s) { return (s || '').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+function slugify(el) {
+  el.value = el.value.toLowerCase().replace(/[^a-z0-9_]/g,'_').replace(/__+/g,'_');
 }
 
-function clearForm() {
-  document.querySelectorAll('#brand-area input[type=text], #brand-area input[type=number], #brand-area input[type=url], #brand-area input[type=password], #brand-area textarea').forEach(el => el.value = "");
-  Object.keys(tagsData).forEach(k => { tagsData[k] = []; renderTags(k === "values" ? "tags-values" : k === "hashtags" ? "tags-hashtags" : k === "voice_adjectives" ? "tags-voice" : "tags-diff", k); });
-  document.getElementById("f-color").value = "#635BFF";
-  document.getElementById("f-color-hex").value = "#635BFF";
-  document.getElementById("f-formality").value = 4;
-  document.getElementById("formality-val").textContent = 4;
-}
-
-// ── Collect form → config object ──────────────────────────────────────────
 function collectForm() {
-  const color = document.getElementById("f-color-hex").value || "#635BFF";
-  const tc = document.querySelector('[name=text_color]:checked')?.value || "#FFFFFF";
-  const lang = document.querySelector('[name=lang]:checked')?.value || "es";
-  const emojiUse = document.querySelector('[name=emoji_use]:checked')?.value || "moderado";
-  const formality = parseInt(document.getElementById("f-formality").value) / 10;
-  const channels = [...document.querySelectorAll('.check-group input[type=checkbox]:checked')].map(cb => cb.value);
-
-  const dayMap = ["mon","tue","wed","thu","fri"];
-  const getSchedule = (prefix) => {
-    const days = dayMap.filter(d => document.getElementById(`${prefix}-${d}`)?.checked);
-    return { days, hour: parseInt(document.getElementById(`${prefix}-hour`)?.value || 9), minute: 0 };
-  };
-
-  const getGoals = (p) => ({
-    instagram_followers:    n(`g${p}-ig-followers`),
-    instagram_engagement_rate: n(`g${p}-ig-eng`),
-    facebook_reach:         n(`g${p}-fb-reach`),
-    facebook_interactions:  n(`g${p}-fb-eng`),
-    linkedin_followers:     n(`g${p}-li-followers`),
-    leads:                  n(`g${p}-leads`),
-    clients:                n(`g${p}-clients`),
-    revenue_usd:            n(`g${p}-revenue`),
-  });
-
-  const personas = [0,1,2].map(i => ({
-    name: g(`p${i}-name`), age: g(`p${i}-age`),
-    occupation: g(`p${i}-job`), income: g(`p${i}-income`),
-    pain: g(`p${i}-pain`), goal: g(`p${i}-goal`),
-  })).filter(p => p.name);
-
-  const competitors = [0,1,2].map(i => ({
-    name: g(`c${i}-name`), weakness: g(`c${i}-weakness`), url: g(`c${i}-url`),
-  })).filter(c => c.name);
-
-  const brandId = g("f-id").toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "");
-
   return {
-    id:          brandId || currentBrandId || "nueva_marca",
-    name:        g("f-name"),
-    tagline:     g("f-tagline"),
-    color,
-    text_color:  tc,
-    industry:    g("f-industry"),
-    geography:   g("f-geography"),
-    description: g("f-description"),
-    mission:     g("f-mission"),
-    logo_url:    g("f-logo-url"),
-    website_url: g("f-website"),
-    social_urls: {
-      instagram: g("f-social-instagram"),
-      facebook:  g("f-social-facebook"),
-      linkedin:  g("f-social-linkedin"),
-      tiktok:    g("f-social-tiktok"),
-      youtube:   g("f-social-youtube"),
-      store:     g("f-social-store"),
-    },
-    values:      [...tagsData.values],
-    hashtags:    [...tagsData.hashtags],
-    phase_names: [g("f-phase1") || "Posicionamiento", g("f-phase2") || "Tracción", g("f-phase3") || "Conversión"],
-    audience: {
-      personas,
-      language: lang,
-      channels,
-      geography: g("f-audience-geo"),
-    },
-    voice: {
-      adjectives:    [...tagsData.voice_adjectives],
-      avoid:         g("f-voice-avoid"),
-      examples_good: g("f-voice-good"),
-      examples_bad:  g("f-voice-bad"),
-      formality,
-      emoji_use:     emojiUse,
-    },
-    positioning: {
-      usp:            g("f-usp"),
-      competitors,
-      differentiators: [...tagsData.differentiators],
-    },
-    credentials: {
-      instagram_business_account_id: g("f-ig-id"),
-      facebook_page_id:              g("f-fb-id"),
-      facebook_page_access_token:    g("f-fb-token"),
-      meta_access_token:             g("f-meta-token"),
-      linkedin_access_token:         g("f-li-token"),
-      linkedin_organization_id:      g("f-li-org"),
-    },
-    posting_schedule: {
-      instagram: getSchedule("ig"),
-      facebook:  getSchedule("fb"),
-      linkedin:  getSchedule("li"),
-    },
-    goals: {
-      "30": getGoals("30"),
-      "60": getGoals("60"),
-      "90": getGoals("90"),
-    },
-    system_prompt:    g("f-system-prompt"),
-    strategy_90days:  g("f-strategy-90days"),
-    monthly_plan:     g("f-monthly-plan"),
+    brand_id:             document.getElementById('f-id')?.value.trim() || '',
+    name:                 document.getElementById('f-name')?.value.trim() || '',
+    tagline:              document.getElementById('f-tagline')?.value.trim() || '',
+    description:          document.getElementById('f-description')?.value.trim() || '',
+    industry:             document.getElementById('f-industry')?.value.trim() || '',
+    geography:            document.getElementById('f-geography')?.value.trim() || '',
+    website_url:          document.getElementById('f-website')?.value.trim() || '',
+    instagram_handle:     document.getElementById('f-handle')?.value.trim() || '',
+    mission:              document.getElementById('f-mission')?.value.trim() || '',
+    color:                document.getElementById('f-color')?.value || '#635BFF',
+    meta_access_token:    document.getElementById('f-token')?.value.trim() || '',
+    instagram_account_id: document.getElementById('f-ig-id')?.value.trim() || '',
+    facebook_page_id:     document.getElementById('f-fb-id')?.value.trim() || '',
   };
 }
 
-// ── Save ──────────────────────────────────────────────────────────────────
 async function saveBrand() {
-  const config = collectForm();
-  if (!config.name) { toast("El nombre es obligatorio", "error"); return; }
+  const data = collectForm();
+  if (!data.name) { toast('El nombre es requerido', true); return; }
 
-  const r = await fetch("/api/brands", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(config),
-  });
-  const d = await r.json();
-  if (d.success) {
-    currentBrandId = config.id;
-    toast(`Marca "${config.name}" guardada `, "success");
-    document.getElementById("save-hint").textContent = `Guardado ${new Date().toLocaleTimeString()}`;
-    loadBrandsList();
+  let url, method;
+  if (isNewBrand) {
+    if (!data.brand_id) { toast('El ID de marca es requerido', true); return; }
+    url = '/api/brands'; method = 'POST';
   } else {
-    toast("Error al guardar: " + (d.error || ""), "error");
+    url = `/api/brands/${currentBrandId}`; method = 'PUT';
+    delete data.brand_id;
+  }
+
+  const r = await fetch(url, {method, headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
+  const res = await r.json();
+
+  if (res.success || res.brand) {
+    if (isNewBrand) {
+      currentBrandId = res.id || data.brand_id;
+      isNewBrand = false;
+      const list = document.getElementById('brand-list');
+      const item = document.createElement('div');
+      item.className = 'brand-item active';
+      item.id = `item-${currentBrandId}`;
+      item.onclick = () => selectBrand(currentBrandId);
+      item.innerHTML = `<div class="brand-dot" style="background:#635BFF22;border:1.5px solid #635BFF44">🏢</div>
+        <div class="brand-info"><div class="brand-name">${data.name}</div><div class="brand-sub">${currentBrandId}</div></div>`;
+      list.appendChild(item);
+      document.getElementById('research-btn').disabled = false;
+    }
+    setActiveItem(currentBrandId);
+    document.querySelector('.panel-title').textContent = data.name;
+    toast('✓ Marca guardada');
+  } else {
+    toast('Error: ' + (res.error || 'Desconocido'), true);
   }
 }
 
-// ── Delete ────────────────────────────────────────────────────────────────
 async function deleteBrand() {
-  if (!currentBrandId) return;
-  if (!confirm(`¿Eliminar la marca "${currentBrandId}"? Esta acción no se puede deshacer.`)) return;
-  const r = await fetch(`/api/brands/${currentBrandId}`, { method: "DELETE" });
-  const d = await r.json();
-  if (d.success) {
-    currentBrandId = null;
-    document.getElementById("brand-area").style.display = "none";
-    document.getElementById("empty-main").style.display = "flex";
-    toast("Marca eliminada", "success");
-    loadBrandsList();
-  } else {
-    toast(d.error || "Error al eliminar", "error");
-  }
+  if (!confirm(`¿Eliminar "${currentBrandId}"? Esta acción no se puede deshacer.`)) return;
+  await fetch(`/api/brands/${currentBrandId}`, {method:'DELETE'});
+  document.getElementById(`item-${currentBrandId}`)?.remove();
+  currentBrandId = null;
+  isNewBrand = false;
+  document.getElementById('research-btn').disabled = true;
+  document.getElementById('main-area').innerHTML = `<div class="welcome"><div style="font-size:40px">✓</div><h2>Marca eliminada</h2></div>`;
+  toast('Marca eliminada');
 }
 
-// ── Generate strategy ─────────────────────────────────────────────────────
-async function generateStrategy(type) {
-  if (!currentBrandId) { toast("Guarda la marca primero", "error"); return; }
+// ── Research ──────────────────────────────────────────────────────────────────
+async function runResearch() {
+  if (!currentBrandId) { toast('Selecciona una marca primero', true); return; }
 
-  // Save current form state first
-  await saveBrand();
-
-  const labels = { "90days": "Plan 90 días", "monthly": "Plan mensual", "weekly": "Contenido semanal" };
-  const r = await fetch(`/api/brands/${currentBrandId}/generate-strategy`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ type }),
-  });
-  const d = await r.json();
-  if (d.success) {
-    showGenBanner(`Generando ${labels[type]}...`);
-    pollGenStatus(type);
-  } else {
-    toast(d.message || "Error iniciando generación", "error");
-  }
-}
-
-function showGenBanner(msg) {
-  document.getElementById("gen-step").textContent = msg;
-  document.getElementById("gen-banner").classList.add("show");
-  ["btn-90days","btn-monthly","btn-weekly"].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) { el.disabled = true; el.textContent = "Generando..."; }
-  });
-}
-
-let genPoll = null;
-function pollGenStatus(type) {
-  if (genPoll) clearInterval(genPoll);
-  genPoll = setInterval(async () => {
-    try {
-      const r = await fetch("/api/generation-status");
-      const s = await r.json();
-      if (s.step) document.getElementById("gen-step").textContent = s.step;
-      if (!s.running && s.finished) {
-        clearInterval(genPoll);
-        document.getElementById("gen-banner").classList.remove("show");
-        restoreActionBtns(type);
-        if (s.error) {
-          toast("Error al generar: " + s.error, "error");
-        } else {
-          toast("✓ Generación completada — la estrategia fue guardada", "success");
-          if (type === "90days" || type === "monthly") {
-            // Reload brand then scroll to strategy textarea
-            await selectBrand(currentBrandId);
-            // Switch to Estrategia tab so user sees the result
-            document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
-            document.querySelectorAll(".tab-pane").forEach(p => p.classList.remove("active"));
-            const estrategiaBtn = document.querySelector('[data-tab="estrategia"]');
-            const estrategiaPane = document.getElementById("tab-estrategia");
-            if (estrategiaBtn) estrategiaBtn.classList.add("active");
-            if (estrategiaPane) estrategiaPane.classList.add("active");
-            // Scroll to the relevant textarea
-            const taId = type === "monthly" ? "f-monthly-plan" : "f-strategy-90days";
-            const ta = document.getElementById(taId);
-            if (ta) ta.scrollIntoView({ behavior: "smooth", block: "start" });
-          } else if (type === "weekly") {
-            // Sync brand selection to review panel, then open it
-            localStorage.setItem("currentBrand", currentBrandId);
-            window.open("/", "_blank");
-          }
-        }
-      }
-    } catch (_) {}
-  }, 2500);
-}
-
-function restoreActionBtns(doneType) {
-  const map = { "90days": ["btn-90days","Generar Plan 90 Días"], "monthly": ["btn-monthly","Actualizar Plan Mensual"], "weekly": ["btn-weekly","⚡ Generar Semana"] };
-  Object.entries(map).forEach(([k,[id,label]]) => {
-    const el = document.getElementById(id);
-    if (el) { el.disabled = false; el.textContent = label; }
-  });
-}
-
-// ── Auto-generate system prompt ───────────────────────────────────────────
-function generateSystemPrompt() {
-  const c = collectForm();
-  const personas = c.audience.personas.map(p => `  • ${p.name}: ${p.occupation || ''}, ${p.age || ''} — ${p.pain || ''}`).join("\n") || "  (Sin personas definidas)";
-  const comps = c.positioning.competitors.map(co => `  • ${co.name}: debilidad = ${co.weakness}`).join("\n") || "  (Sin competidores registrados)";
-
-  const prompt = `Eres el Director Creativo Digital de ${c.name}${c.tagline ? ` — "${c.tagline}"` : ""}.
-Tu misión: generar contenido que consiga clientes reales, no solo likes.
-
-══ IDENTIDAD ══
-Industria: ${c.industry || "N/A"}
-Descripción: ${c.description || "N/A"}
-Misión: ${c.mission || "N/A"}
-Geografía objetivo: ${c.geography || "N/A"}
-Valores: ${c.values.join(", ") || "N/A"}
-
-══ AUDIENCIA ══
-Idioma preferido: ${c.audience.language === "es" ? "Español" : c.audience.language === "en" ? "Inglés" : "Bilingüe"}
-Canales activos: ${c.audience.channels.join(", ") || "N/A"}
-Personas:
-${personas}
-
-══ VOZ Y TONO ══
-Adjetivos: ${c.voice.adjectives.join(", ") || "N/A"}
-Formalidad: ${Math.round(c.voice.formality * 10)}/10 (0=formal, 10=casual)
-Emojis: ${c.voice.emoji_use}
-NUNCA hacer: ${c.voice.avoid || "N/A"}
-
-══ PROPUESTA DE VALOR ══
-${c.positioning.usp || "N/A"}
-
-══ DIFERENCIADORES ══
-${c.positioning.differentiators.join(" · ") || "N/A"}
-
-══ COMPETIDORES ══
-${comps}
-
-══ HASHTAGS ══
-${c.hashtags.join(" ") || "N/A"}
-
-══ REGLAS EDITORIALES ══
-1. Cada pieza debe tener UN objetivo claro (educar, conectar o convertir)
-2. Usar ejemplos concretos con números reales cuando sea posible
-3. Siempre terminar con CTA claro y específico
-4. El idioma principal es ${c.audience.language === "es" ? "español" : c.audience.language}
-5. ${c.voice.avoid ? "Evitar: " + c.voice.avoid.split(".")[0] : "Mantener voz auténtica y cercana"}
-6. NO publicar — solo generar y guardar para aprobación`;
-
-  document.getElementById("f-system-prompt").value = prompt;
-  toast("Prompt generado desde el brief", "success");
-}
-
-// ── Load brand stats ──────────────────────────────────────────────────────
-async function loadBrandStats(brandId) {
-  try {
-    const r = await fetch(`/api/brands/${brandId}`);
-    if (!r.ok) return;
-    const { stats } = await r.json();
-    if (!stats) return;
-    document.getElementById("perf-published").textContent = stats.published_month || 0;
-    document.getElementById("perf-pending").textContent = stats.pending || 0;
-    const eng = stats.avg_engagement;
-    document.getElementById("perf-engagement").textContent = eng ? eng.toFixed(1) + "%" : "—";
-    document.getElementById("perf-failed").textContent = stats.failed || 0;
-  } catch (_) {}
-}
-
-// ── Test credentials ──────────────────────────────────────────────────────
-async function testCred(platform) {
-  const resultEl = document.getElementById(`${platform}-test-result`);
-  if (resultEl) { resultEl.style.display = "block"; resultEl.textContent = "Verificando..."; resultEl.className = "cred-ok"; }
-  try {
-    const r = await fetch("/api/check-token");
-    const d = await r.json();
-    if (platform === "instagram") {
-      const ok = d.page_token_exchange === "OK";
-      if (resultEl) { resultEl.textContent = ok ? "✓ Conexión OK" : "✗ " + (d.page_token_error || "Error"); resultEl.className = ok ? "cred-ok" : "cred-err"; }
-    } else if (platform === "facebook") {
-      const ok = d.page_token_exchange === "OK";
-      if (resultEl) { resultEl.textContent = ok ? "✓ Conexión OK" : "✗ Error de permisos"; resultEl.className = ok ? "cred-ok" : "cred-err"; }
-    } else {
-      const missing = d.missing_permissions || [];
-      if (resultEl) { resultEl.textContent = missing.length === 0 ? "✓ Token válido" : "✗ Permisos faltantes: " + missing.join(", "); resultEl.className = missing.length === 0 ? "cred-ok" : "cred-err"; }
-    }
-  } catch (e) {
-    if (resultEl) { resultEl.textContent = "Error de red"; resultEl.className = "cred-err"; }
-  }
-}
-
-// ── Tags ──────────────────────────────────────────────────────────────────
-function addTag(e, wrapId, inputId, key) {
-  if (e.key !== "Enter" && e.key !== ",") return;
-  e.preventDefault();
-  const input = document.getElementById(inputId);
-  const val = input.value.trim().replace(/,$/, "");
-  if (val && !tagsData[key].includes(val)) {
-    tagsData[key].push(val);
-    renderTags(wrapId, key);
-  }
-  input.value = "";
-}
-
-function renderTags(wrapId, key) {
-  const wrap = document.getElementById(wrapId);
-  const input = wrap.querySelector(".tags-input");
-  const tags = tagsData[key].map((t, i) =>
-    `<span class="tag">${t}<button onclick="removeTag('${wrapId}','${key}',${i})">×</button></span>`
-  ).join("");
-  wrap.innerHTML = tags;
-  wrap.appendChild(input);
-}
-
-function removeTag(wrapId, key, idx) {
-  tagsData[key].splice(idx, 1);
-  renderTags(wrapId, key);
-}
-
-function setTags(wrapId, key, values) {
-  tagsData[key] = [...values];
-  renderTags(wrapId, key);
-}
-
-function focusTagInput(inputId) {
-  document.getElementById(inputId)?.focus();
-}
-
-// ── Top bar update ────────────────────────────────────────────────────────
-function updateTopBar() {
-  const name = document.getElementById("f-name").value || "Nueva Marca";
-  const tagline = document.getElementById("f-tagline")?.value || "";
-  document.getElementById("tb-name").textContent = name;
-  document.getElementById("tb-tag").textContent = tagline;
-}
-
-// ── Media library ─────────────────────────────────────────────────────────
-let allMedia = [], mediaFilter = "all";
-
-async function loadMedia() {
-  if (!currentBrandId) return;
-  const r = await fetch(`/api/brands/${currentBrandId}/media`);
-  allMedia = await r.json();
-  renderMedia();
-}
-
-function filterMedia(type, btn) {
-  mediaFilter = type;
-  document.querySelectorAll(".media-filter-btn").forEach(b => b.classList.remove("active"));
-  btn.classList.add("active");
-  renderMedia();
-}
-
-function renderMedia() {
-  const grid  = document.getElementById("media-grid");
-  const empty = document.getElementById("media-empty");
-  const badge = document.getElementById("media-count-badge");
-  const items = mediaFilter === "all" ? allMedia : allMedia.filter(m => m.media_type === mediaFilter);
-  badge.textContent = allMedia.length;
-  // media-empty is now a sibling of media-grid, not inside it — getElementById always works
-  empty.style.display = items.length ? "none" : "block";
-  grid.innerHTML = items.map(m => `
-    <div class="media-card" data-id="${m.id}" data-type="${m.media_type}" data-url="${m.url}">
-      ${m.media_type === "video"
-        ? `<div class="media-card-video">🎬</div>`
-        : `<img class="media-card-thumb" src="${m.url}" alt="${m.title}" loading="lazy">`}
-      <div class="media-card-body">
-        <div class="media-card-title" title="${m.title||m.filename}">${m.title||m.filename}</div>
-        <input type="text" value="${m.description||''}" placeholder="Descripción..." style="width:100%;font-size:10px;border:1px solid var(--border);border-radius:4px;padding:2px 6px;margin-bottom:4px" onblur="updateMediaDesc(${m.id},this.value)">
-        <div class="media-card-actions">
-          <button class="media-card-btn" onclick="copyMediaUrl('${m.url}')">📋 URL</button>
-          <button class="media-card-btn del" onclick="deleteMedia(${m.id})">🗑</button>
-        </div>
-      </div>
-    </div>`).join("");
-}
-
-async function uploadMediaFiles(files) {
-  if (!currentBrandId) { toast("Guarda la marca primero", "error"); return; }
-  // Convert to Array BEFORE touching the input (FileList is a live reference)
-  const fileArray = Array.from(files);
-  if (!fileArray.length) return;
-  const progress = document.getElementById("media-upload-progress");
-  const fill     = document.getElementById("media-progress-fill");
-  const label    = document.getElementById("media-progress-label");
-  progress.style.display = "block";
-  const fd = new FormData();
-  fileArray.forEach(f => fd.append("files", f));
-  label.textContent = `Subiendo ${fileArray.length} archivo(s)...`;
-  fill.style.width = "30%";
-  try {
-    const r = await fetch(`/api/brands/${currentBrandId}/media`, { method: "POST", body: fd });
-    if (!r.ok) {
-      const txt = await r.text();
-      throw new Error(txt || `HTTP ${r.status}`);
-    }
-    const d = await r.json();
-    fill.style.width = "100%";
-    label.textContent = `✓ ${d.saved?.length || 0} archivo(s) guardados`;
-    await loadMedia();
-    toast(`${d.saved?.length || 0} assets subidos a la biblioteca`, "success");
-  } catch (e) {
-    fill.style.width = "0%";
-    label.textContent = "Error: " + e.message;
-    toast("Error al subir: " + e.message, "error");
-  } finally {
-    // Reset input AFTER upload so the same files can be re-selected if needed
-    const minput = document.getElementById("media-file-input");
-    if (minput) minput.value = "";
-    setTimeout(() => { progress.style.display = "none"; fill.style.width = "0%"; }, 3000);
-  }
-}
-
-async function deleteMedia(id) {
-  if (!confirm("¿Eliminar este asset?")) return;
-  await fetch(`/api/brands/${currentBrandId}/media/${id}`, { method: "DELETE" });
-  await loadMedia();
-  toast("Asset eliminado", "success");
-}
-
-async function updateMediaDesc(id, desc) {
-  const item = allMedia.find(m => m.id === id);
-  if (!item) return;
-  await fetch(`/api/brands/${currentBrandId}/media/${id}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ title: item.title, description: desc, tags: item.tags || [] }),
-  });
-}
-
-function copyMediaUrl(url) {
-  navigator.clipboard.writeText(window.location.origin + url);
-  toast("URL copiada al portapapeles", "success");
-}
-
-// Media picker modal (for campaign product image)
-function openMediaPicker() {
-  const images = allMedia.filter(m => m.media_type === "image");
-  const overlay = document.createElement("div");
-  overlay.className = "media-picker-overlay";
-  overlay.innerHTML = `
-    <div class="media-picker-modal">
-      <div class="media-picker-header">
-        <span style="font-weight:700;font-size:15px">Seleccionar imagen del producto</span>
-        <button onclick="this.closest('.media-picker-overlay').remove()" style="border:none;background:none;font-size:20px;cursor:pointer;color:var(--muted)">✕</button>
-      </div>
-      <div class="media-picker-grid">
-        ${images.length ? images.map(m => `
-          <div style="cursor:pointer;border-radius:8px;overflow:hidden;border:2px solid transparent;transition:all 0.15s"
-               onclick="selectProductImage(${m.id},'${m.url}','${m.title||m.filename}');this.closest('.media-picker-overlay').remove()"
-               onmouseover="this.style.borderColor='var(--purple)'" onmouseout="this.style.borderColor='transparent'">
-            <img src="${m.url}" style="width:100%;height:100px;object-fit:cover;display:block">
-            <div style="padding:4px 6px;font-size:10px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m.title||m.filename}</div>
-          </div>`) .join("") : '<div style="grid-column:1/-1;text-align:center;padding:32px;color:var(--muted)">No hay imágenes en la biblioteca. Sube fotos en la pestaña 📸 Medios primero.</div>'}
-      </div>
-    </div>`;
-  document.body.appendChild(overlay);
-  overlay.addEventListener("click", e => { if (e.target === overlay) overlay.remove(); });
-}
-
-function selectProductImage(id, url, name) {
-  document.getElementById("camp-product-media-id").value = id;
-  document.getElementById("product-img-thumb").src = url;
-  document.getElementById("product-img-name").textContent = name;
-  document.getElementById("product-img-preview").style.display = "flex";
-  document.getElementById("product-img-preview").style.alignItems = "center";
-  document.getElementById("product-img-empty").style.display = "none";
-}
-
-function clearProductImage() {
-  document.getElementById("camp-product-media-id").value = "";
-  document.getElementById("product-img-preview").style.display = "none";
-  document.getElementById("product-img-empty").style.display = "block";
-}
-
-// ── Campaign ───────────────────────────────────────────────────────────────
-async function loadCampaign() {
-  if (!currentBrandId) return;
-  const month = document.getElementById("camp-month").value;
-  const year  = document.getElementById("camp-year").value;
-  const r = await fetch(`/api/brands/${currentBrandId}/campaign?month=${month}&year=${year}`);
-  const d = await r.json();
-  document.getElementById("camp-product-name").value  = d.product_name || "";
-  document.getElementById("camp-product-price").value = d.product_price || "";
-  document.getElementById("camp-product-desc").value  = d.product_desc || "";
-  document.getElementById("camp-promo-type").value    = d.promo_type || "";
-  document.getElementById("camp-discount-pct").value  = d.discount_pct || "";
-  document.getElementById("camp-promo-details").value = d.promo_details || "";
-  document.getElementById("camp-goal").value          = d.campaign_goal || "";
-  document.getElementById("camp-segment").value       = d.target_segment || "";
-  document.getElementById("camp-dates").value         = d.campaign_dates || "";
-  document.getElementById("camp-notes").value         = d.notes || "";
-  if (d.product_media_id) {
-    const media = allMedia.find(m => m.id === d.product_media_id);
-    if (media) selectProductImage(media.id, media.url, media.title || media.filename);
-  }
-  // Restore suggestions if any
-  if (d.suggestions?.length) renderSuggestionsResult({ suggestions: d.suggestions });
-}
-
-async function saveCampaign() {
-  if (!currentBrandId) { toast("Selecciona una marca primero", "error"); return; }
-  const month = document.getElementById("camp-month").value;
-  const year  = document.getElementById("camp-year").value;
-  const data = {
-    month: parseInt(month), year: parseInt(year),
-    product_name:    document.getElementById("camp-product-name").value,
-    product_price:   document.getElementById("camp-product-price").value,
-    product_desc:    document.getElementById("camp-product-desc").value,
-    product_media_id: parseInt(document.getElementById("camp-product-media-id").value) || null,
-    promo_type:      document.getElementById("camp-promo-type").value,
-    discount_pct:    document.getElementById("camp-discount-pct").value,
-    promo_details:   document.getElementById("camp-promo-details").value,
-    campaign_goal:   document.getElementById("camp-goal").value,
-    target_segment:  document.getElementById("camp-segment").value,
-    campaign_dates:  document.getElementById("camp-dates").value,
-    notes:           document.getElementById("camp-notes").value,
-  };
-  const r = await fetch(`/api/brands/${currentBrandId}/campaign`, {
-    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data),
-  });
-  const d = await r.json();
-  if (d.success) toast("Campaña guardada", "success");
-  else toast("Error: " + d.error, "error");
-}
-
-// ── Campaign evaluation & suggestions ─────────────────────────────────────
-let _suggestions = [], _sugIdx = 0, _evalMonth, _evalYear;
-
-async function evaluateCampaign() {
-  if (!currentBrandId) { toast("Selecciona una marca primero", "error"); return; }
-  await saveCampaign();
-  const btn = document.getElementById("btn-evaluate");
-  btn.disabled = true; btn.innerHTML = "<span>⏳</span> Analizando...";
-  document.getElementById("suggestions-panel").style.display = "none";
-  _evalMonth = parseInt(document.getElementById("camp-month").value);
-  _evalYear  = parseInt(document.getElementById("camp-year").value);
-  try {
-    const r = await fetch(`/api/brands/${currentBrandId}/campaign/evaluate`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ month: _evalMonth, year: _evalYear }),
-    });
-    const d = await r.json();
-    if (!d.success) { toast("Error: " + d.error, "error"); return; }
-    renderSuggestionsResult(d.evaluation);
-    toast("✓ Evaluación completada — revisa las sugerencias", "success");
-  } catch (e) {
-    toast("Error: " + e.message, "error");
-  } finally {
-    btn.disabled = false; btn.innerHTML = "<span>🔍</span> Evaluar campaña";
-  }
-}
-
-function renderSuggestionsResult(ev) {
-  _suggestions = ev.suggestions || [];
-  _sugIdx = _suggestions.findIndex(s => !s.status) ;
-  if (_sugIdx < 0) _sugIdx = _suggestions.length; // all already reviewed
-  const panel = document.getElementById("suggestions-panel");
-  panel.style.display = "block";
-  // Score bar
-  const scoreBar = document.getElementById("sug-score-bar");
-  scoreBar.style.display = "flex";
-  document.getElementById("sug-score").textContent = ev.campaign_score ? `${ev.campaign_score}/10` : "—";
-  document.getElementById("sug-rationale").textContent = ev.score_rationale || "";
-  const est = [ev.revenue_estimate, ev.reach_estimate, ev.conversion_estimate].filter(Boolean).join("  ·  ");
-  document.getElementById("sug-estimates").textContent = est;
-  const risksEl = document.getElementById("sug-risks");
-  risksEl.innerHTML = (ev.risks || []).map(r => `<li>${r}</li>`).join("");
-  showCurrentSuggestion();
-  panel.scrollIntoView({ behavior: "smooth", block: "start" });
-}
-
-function showCurrentSuggestion() {
-  const pending = _suggestions.filter(s => !s.status);
-  const approved = _suggestions.filter(s => s.status === "approved").length;
-  const total    = _suggestions.length;
-  document.getElementById("sug-progress-label").textContent =
-    `${approved} aprobada(s) · ${pending.length} pendiente(s) de ${total}`;
-  const card = document.getElementById("sug-card");
-  const done = document.getElementById("sug-done");
-  if (!pending.length) {
-    card.style.display = "none";
-    done.style.display = "block";
-    const app = _suggestions.filter(s => s.status === "approved");
-    document.getElementById("sug-done-text").textContent =
-      app.length ? `${app.length} sugerencia(s) aprobada(s): ${app.map(s=>s.title).join(", ")}. El agente las aplicará en el próximo contenido semanal.`
-                 : "No se aprobaron sugerencias. El agente usará la campaña tal como fue configurada.";
-    return;
-  }
-  const sug = pending[0];
-  card.style.display = "block";
-  done.style.display = "none";
-  const impactColors = { alto:"#DC2626", medio:"#D97706", bajo:"#059669" };
-  const catLabels    = { precio:"💰 Precio", contenido:"📝 Contenido", timing:"⏰ Timing",
-                          segmento:"👤 Segmento", oferta:"🎁 Oferta", formato:"📐 Formato" };
-  document.getElementById("sug-num").textContent = `Sugerencia ${_suggestions.indexOf(sug)+1} de ${total}`;
-  const cat = sug.category || "";
-  document.getElementById("sug-category-badge").textContent = catLabels[cat] || cat;
-  document.getElementById("sug-category-badge").style.cssText = "background:rgba(255,255,255,0.2);color:white;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px";
-  const imp = (sug.impact||"medio").toLowerCase();
-  document.getElementById("sug-impact-badge").textContent = `Impacto ${imp}`;
-  document.getElementById("sug-impact-badge").style.cssText = `background:${impactColors[imp]||"#6B7280"};color:white;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px`;
-  document.getElementById("sug-title").textContent      = sug.title || "";
-  document.getElementById("sug-problem").textContent    = sug.problem || "";
-  document.getElementById("sug-suggestion").textContent = sug.suggestion || "";
-  document.getElementById("sug-example").textContent    = sug.example || "";
-  _sugIdx = _suggestions.indexOf(sug);
-}
-
-async function decideSuggestion(status) {
-  const sug = _suggestions[_sugIdx];
-  if (!sug) return;
-  sug.status = status;
-  // Persist to server
-  fetch(`/api/brands/${currentBrandId}/campaign/suggestions`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ id: sug.id, status, month: _evalMonth, year: _evalYear }),
-  });
-  showCurrentSuggestion();
-}
-
-async function applySuggestionsToContent() {
-  // Switch to Estrategia tab and trigger weekly generation
-  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
-  document.querySelectorAll(".tab-pane").forEach(p => p.classList.remove("active"));
-  const btn = document.querySelector('[data-tab="estrategia"]');
-  const pane = document.getElementById("tab-estrategia");
-  if (btn) btn.classList.add("active");
-  if (pane) pane.classList.add("active");
-  generateStrategy("weekly");
-}
-
-document.addEventListener("DOMContentLoaded", () => {
-  // Logo / manual drop zones
-  document.getElementById("logo-drop-zone").addEventListener("click", () => {
-    document.getElementById("logo-file-input").click();
-  });
-  document.getElementById("manual-drop-zone").addEventListener("click", () => {
-    document.getElementById("manual-file-input").click();
-  });
-  setupDrop("logo-drop-zone", "logo-file-input", handleLogoSelect);
-  setupDrop("manual-drop-zone", "manual-file-input", handleManualSelect);
-
-  // Media library — solo drag & drop (el label ya conecta el botón al input)
-  const mzone = document.getElementById("media-drop-zone");
-  if (mzone) {
-    mzone.addEventListener("dragover", e => { e.preventDefault(); mzone.classList.add("drag-over"); });
-    mzone.addEventListener("dragleave", () => mzone.classList.remove("drag-over"));
-    mzone.addEventListener("drop", e => {
-      e.preventDefault(); mzone.classList.remove("drag-over");
-      if (e.dataTransfer.files.length) uploadMediaFiles(e.dataTransfer.files);
-    });
-  }
-
-  // Campaign month/year defaults
-  const now = new Date();
-  const msel = document.getElementById("camp-month");
-  const ysel = document.getElementById("camp-year");
-  if (msel) msel.value = now.getMonth() + 1;
-  if (ysel) {
-    ysel.innerHTML = "";
-    for (let y = now.getFullYear(); y <= now.getFullYear() + 1; y++) {
-      ysel.innerHTML += `<option value="${y}"${y === now.getFullYear() ? " selected" : ""}>${y}</option>`;
-    }
-  }
-});
-
-function setupDrop(zoneId, inputId, handler) {
-  const zone = document.getElementById(zoneId);
-  zone.addEventListener("dragover", e => { e.preventDefault(); zone.classList.add("drag-over"); });
-  zone.addEventListener("dragleave", () => zone.classList.remove("drag-over"));
-  zone.addEventListener("drop", e => {
-    e.preventDefault(); zone.classList.remove("drag-over");
-    const input = document.getElementById(inputId);
-    if (e.dataTransfer.files.length) {
-      const dt = new DataTransfer();
-      dt.items.add(e.dataTransfer.files[0]);
-      input.files = dt.files;
-      handler(input);
-    }
-  });
-}
-
-async function handleLogoSelect(input) {
-  if (!input.files[0]) return;
-  if (!currentBrandId) { toast("Guarda la marca primero para subir el logo", "error"); return; }
-  const file = input.files[0];
-  // Show preview immediately
-  const reader = new FileReader();
-  reader.onload = e => {
-    document.getElementById("logo-preview").src = e.target.result;
-    document.getElementById("logo-preview").style.display = "block";
-    document.getElementById("logo-placeholder").style.display = "none";
-  };
-  reader.readAsDataURL(file);
-  // Upload to server
-  document.getElementById("logo-upload-status").textContent = "Subiendo...";
-  const fd = new FormData();
-  fd.append("file", file);
-  try {
-    const r = await fetch(`/api/brands/${currentBrandId}/upload-logo`, { method: "POST", body: fd });
-    const d = await r.json();
-    if (d.success) {
-      document.getElementById("f-logo-url").value = d.url;
-      document.getElementById("logo-upload-status").textContent = "✓ Logo guardado";
-      toast("Logo guardado correctamente", "success");
-    } else {
-      document.getElementById("logo-upload-status").textContent = "Error: " + d.error;
-    }
-  } catch (e) {
-    document.getElementById("logo-upload-status").textContent = "Error de red";
-  }
-}
-
-async function handleManualSelect(input) {
-  if (!input.files[0]) return;
-  if (!currentBrandId) { toast("Guarda la marca primero para subir el manual", "error"); return; }
-  const file = input.files[0];
-  const statusEl = document.getElementById("manual-upload-status");
-  statusEl.textContent = "Leyendo manual...";
-  const fd = new FormData();
-  fd.append("file", file);
-  try {
-    statusEl.textContent = "Analizando con IA y guardando...";
-    const r = await fetch(`/api/brands/${currentBrandId}/upload-manual`, { method: "POST", body: fd });
-    const d = await r.json();
-    if (d.success) {
-      document.getElementById("manual-placeholder").style.display = "none";
-      document.getElementById("manual-loaded").style.display = "block";
-      document.getElementById("manual-name").textContent = file.name;
-      document.getElementById("manual-chars").textContent = `${d.chars} caracteres extraídos`;
-      const resMsg = d.research_applied ? " + investigación profunda completada" : "";
-      statusEl.textContent = `✓ Manual analizado${resMsg}`;
-      toast(`Manual analizado — datos guardados automáticamente`, "success");
-      // Reload brand form with updated data
-      if (d.brand) applyBrandToForm(d.brand);
-    } else {
-      statusEl.textContent = "Error: " + d.error;
-    }
-  } catch (e) {
-    statusEl.textContent = "Error de red: " + e.message;
-  }
-}
-
-// ── Analyze with AI ───────────────────────────────────────────────────────
-async function analyzeWithAI() {
-  if (!currentBrandId) { toast("Guarda la marca primero", "error"); return; }
-  const website = document.getElementById("f-website").value.trim();
-  const socialUrls = {
-    instagram: document.getElementById("f-social-instagram").value.trim(),
-    facebook:  document.getElementById("f-social-facebook").value.trim(),
-    linkedin:  document.getElementById("f-social-linkedin").value.trim(),
-    tiktok:    document.getElementById("f-social-tiktok").value.trim(),
-    youtube:   document.getElementById("f-social-youtube").value.trim(),
-    store:     document.getElementById("f-social-store").value.trim(),
-  };
-  const hasSocial = Object.values(socialUrls).some(x => x);
-  // Also check if there's a loaded manual
-  const manualLoaded = document.getElementById("manual-loaded")?.style.display !== "none";
-  if (!website && !hasSocial && !manualLoaded) {
-    toast("Ingresa el sitio web, redes sociales o carga el manual de marca primero", "error"); return;
-  }
-  const btn = document.getElementById("btn-analyze");
+  const btn = document.getElementById('research-btn');
   btn.disabled = true;
-  btn.innerHTML = "<span>⏳</span> Analizando y guardando...";
-  document.getElementById("insights-panel").style.display = "none";
+  btn.textContent = '...';
+
+  document.getElementById('rp-empty').style.display = 'none';
+  document.getElementById('rp-results').style.display = 'none';
+  const prog = document.getElementById('rp-progress');
+  prog.style.display = 'block';
+
+  const steps = [
+    [15,'Analizando industria...'], [35,'Investigando competidores...'],
+    [55,'Identificando audiencia...'], [70,'Generando hashtags...'],
+    [85,'Definiendo KPIs...'], [95,'Elaborando estrategia...'],
+  ];
+  let si = 0;
+  const interval = setInterval(() => {
+    if (si < steps.length) {
+      document.getElementById('prog-fill').style.width = steps[si][0] + '%';
+      document.getElementById('prog-label').textContent = steps[si][1];
+      si++;
+    }
+  }, 2500);
+
   try {
-    const r = await fetch(`/api/brands/${currentBrandId}/analyze`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        website_url: website,
-        social_urls: socialUrls,
-        brand_name: document.getElementById("f-name").value || currentBrandId,
-      }),
+    const form = collectForm();
+    const r = await fetch(`/api/research/${currentBrandId}`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(form),
     });
-    const d = await r.json();
-    if (!d.success) { toast("Error: " + d.error, "error"); return; }
+    const data = await r.json();
+    clearInterval(interval);
+    document.getElementById('prog-fill').style.width = '100%';
 
-    // Auto-apply to form (data already saved in DB by server)
-    if (d.brand) applyBrandToForm(d.brand);
-
-    // Show brief summary panel
-    const ins = d.insights || {};
-    const panel = document.getElementById("insights-panel");
-    const summary = document.getElementById("insights-summary");
-    const resLine = d.research_applied ? "\n\n✓ Investigación competitiva completada y guardada" : "";
-    summary.textContent =
-      `✓ ANÁLISIS COMPLETADO — datos guardados automáticamente\n\n` +
-      `NOMBRE: ${ins.name || "—"}\n` +
-      `TAGLINE: ${ins.tagline || "—"}\n` +
-      `INDUSTRIA: ${ins.industry || "—"}\n` +
-      `DESCRIPCIÓN: ${ins.description || "—"}\n\n` +
-      `PROPUESTA ÚNICA: ${ins.positioning?.usp || "—"}\n` +
-      `VOZ: ${(ins.voice?.adjectives||[]).join(", ")}` +
-      resLine;
-    panel.style.display = "block";
-    panel.scrollIntoView({ behavior: "smooth", block: "start" });
-    const resMsg = d.research_applied ? " + investigación profunda" : "";
-    toast(`✓ Análisis${resMsg} completado y guardado`, "success");
-  } catch (e) {
-    toast("Error de red: " + e.message, "error");
+    if (!data.success && !data.research) {
+      toast('Error: ' + (data.error || 'Investigación fallida'), true);
+    } else {
+      const merged = Object.assign({}, form, data.research || {});
+      renderResearch(merged);
+      toast(`✓ Investigación completada — ${data.fields_filled || '?'} campos`);
+    }
+  } catch(e) {
+    clearInterval(interval);
+    toast('Error de red: ' + e.message, true);
   } finally {
+    prog.style.display = 'none';
     btn.disabled = false;
-    btn.innerHTML = "<span>🤖</span> Analizar marca con IA";
+    btn.textContent = 'Generar';
   }
 }
 
-function applyBrandToForm(brand) {
-  if (!brand) return;
-  if (brand.name)        { v("f-name", brand.name); updateTopBar(); }
-  if (brand.tagline)     v("f-tagline", brand.tagline);
-  if (brand.description) v("f-description", brand.description);
-  if (brand.mission)     v("f-mission", brand.mission);
-  if (brand.industry)    v("f-industry", brand.industry);
-  if (brand.geography)   v("f-geography", brand.geography);
-  if (brand.values?.length)   setTags("tags-values", "values", brand.values);
-  if (brand.hashtags?.length) setTags("tags-hashtags", "hashtags", brand.hashtags);
-  const voice = brand.voice || {};
-  if (voice.adjectives?.length) setTags("tags-voice", "voice_adjectives", voice.adjectives);
-  if (voice.avoid)   v("f-voice-avoid", voice.avoid);
-  if (voice.formality != null) {
-    const slider = document.getElementById("f-formality");
-    if (slider) { slider.value = voice.formality; if (slider.oninput) slider.oninput(); }
+function renderResearch(b) {
+  let html = '';
+
+  if (b.unique_value_proposition) {
+    html += `<div class="r-summary">"${b.unique_value_proposition}"</div>`;
   }
-  if (voice.emoji_use) {
-    document.querySelectorAll('[name=emoji_use]').forEach(r => r.checked = r.value === voice.emoji_use);
+
+  if (b.audience_profile || b.brand_tone) {
+    html += `<div class="r-section"><div class="r-section-title">AUDIENCIA Y TONO</div><div class="r-card">`;
+    if (b.audience_profile) html += `<div style="margin-bottom:8px"><strong style="color:rgba(255,255,255,.6);font-size:11px">Audiencia:</strong><br>${b.audience_profile}</div>`;
+    if (b.brand_tone)       html += `<div><strong style="color:rgba(255,255,255,.6);font-size:11px">Tono:</strong><br>${b.brand_tone}</div>`;
+    html += `</div></div>`;
   }
-  const pos = brand.positioning || {};
-  if (pos.usp)                    v("f-usp", pos.usp);
-  if (pos.differentiators?.length) setTags("tags-diff", "differentiators", pos.differentiators);
-  if (pos.competitors?.length) {
-    pos.competitors.forEach((comp, idx) => {
-      const nameEl = document.getElementById(`comp${idx}-name`);
-      const weakEl = document.getElementById(`comp${idx}-weakness`);
-      if (nameEl) nameEl.value = comp.name || "";
-      if (weakEl) weakEl.value = comp.weakness || "";
+
+  if (b.competitors?.length) {
+    html += `<div class="r-section"><div class="r-section-title">COMPETIDORES</div><div class="r-card">`;
+    b.competitors.forEach(c => { html += `<div style="padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:12px">• ${c}</div>`; });
+    html += `</div></div>`;
+  }
+
+  if (b.differentiators?.length) {
+    html += `<div class="r-section"><div class="r-section-title">DIFERENCIADORES</div><div class="r-card">`;
+    b.differentiators.forEach(d => { html += `<div style="padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:12px">• ${d}</div>`; });
+    html += `</div></div>`;
+  }
+
+  if (b.hashtags?.length) {
+    html += `<div class="r-section"><div class="r-section-title">HASHTAGS (${b.hashtags.length})</div>`;
+    html += b.hashtags.slice(0,20).map(t => `<span class="r-tag">${t}</span>`).join('');
+    html += `</div>`;
+  }
+
+  const kpiDefs = [['kpi_30_days','30 DÍAS'],['kpi_60_days','60 DÍAS'],['kpi_90_days','90 DÍAS']];
+  if (kpiDefs.some(([k]) => b[k]?.length)) {
+    html += `<div class="r-section"><div class="r-section-title">KPIs</div>`;
+    kpiDefs.forEach(([key, label]) => {
+      if (!b[key]?.length) return;
+      html += `<div style="margin-bottom:10px"><div style="color:var(--muted);font-size:10px;font-weight:700;margin-bottom:4px">${label}</div>`;
+      b[key].forEach(k => { html += `<div style="font-size:11px;padding:2px 0;color:rgba(255,255,255,.7)">• ${k}</div>`; });
+      html += `</div>`;
     });
+    html += `</div>`;
   }
-  const aud = brand.audience || {};
-  if (aud.geography) v("f-audience-geo", aud.geography);
-  if (aud.language) {
-    document.querySelectorAll('[name=lang]').forEach(r => r.checked = r.value === aud.language);
-  }
-  if (aud.personas?.length) {
-    aud.personas.forEach((p, idx) => {
-      if (idx > 2) return;
-      const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ""; };
-      set(`p${idx}-name`, p.name);
-      set(`p${idx}-age`, p.age);
-      set(`p${idx}-occ`, p.occupation);
-      set(`p${idx}-pain`, p.pain);
-      set(`p${idx}-goal`, p.goal);
+
+  if (b.strategy_phases) {
+    const sp = b.strategy_phases;
+    html += `<div class="r-section"><div class="r-section-title">ESTRATEGIA 90 DÍAS</div>`;
+    [['phase_1','Fase 1 — 1-30 días'],['phase_2','Fase 2 — 31-60 días'],['phase_3','Fase 3 — 61-90 días']].forEach(([k, label]) => {
+      if (!sp[k]) return;
+      html += `<div class="r-card"><div class="r-card-title">${label}</div><div class="r-card-sub">${sp[k]}</div></div>`;
     });
+    html += `</div>`;
   }
-  const lines = brand.content_lines || [];
-  lines.forEach((line, idx) => {
-    const nameEl = document.getElementById(`cl${idx}-name`);
-    const pctEl  = document.getElementById(`cl${idx}-pct`);
-    const descEl = document.getElementById(`cl${idx}-desc`);
-    if (nameEl) nameEl.value = line.name || "";
-    if (pctEl)  pctEl.value  = Math.round((line.percentage || 0) * 100);
-    if (descEl) descEl.value = line.description || "";
-  });
+
+  const el = document.getElementById('rp-results');
+  el.innerHTML = html || '<div class="rp-empty">Sin datos de investigación aún.</div>';
+  el.style.display = 'block';
 }
 
-// ── Color sync ────────────────────────────────────────────────────────────
-function setupColorSync() {}
-function syncColorHex() { document.getElementById("f-color-hex").value = document.getElementById("f-color").value; }
-function syncColorPicker() {
-  const val = document.getElementById("f-color-hex").value;
-  if (/^#[0-9A-Fa-f]{6}$/.test(val)) document.getElementById("f-color").value = val;
-}
-
-// ── Helpers ───────────────────────────────────────────────────────────────
-const g = id => document.getElementById(id)?.value || "";
-const n = id => parseFloat(document.getElementById(id)?.value) || 0;
-const v = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
-const nv = (id, val) => { const el = document.getElementById(id); if (el && val != null) el.value = val; };
-
-function toast(msg, type = "") {
-  const el = document.getElementById("toast");
-  el.textContent = msg;
-  el.className = `show ${type}`;
-  clearTimeout(el._t);
-  el._t = setTimeout(() => el.classList.remove("show"), 3500);
-}
+// Auto-select from URL param
+const urlBrand = new URLSearchParams(location.search).get('brand');
+if (urlBrand) selectBrand(urlBrand);
 </script>
 </body>
 </html>

@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Voxify — Contenido</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#090912;--card:#12121f;--nav:#0d0d1a;--purple:#635BFF;--cyan:#06d6a0;--red:#ef4444;--yellow:#f59e0b;--muted:rgba(255,255,255,.4);--border:rgba(255,255,255,.08);--text:rgba(255,255,255,.88)}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;min-height:100vh}
+a{color:inherit;text-decoration:none}
+
+nav{background:var(--nav);border-bottom:1px solid var(--border);padding:0 24px;height:52px;display:flex;align-items:center;gap:32px;position:sticky;top:0;z-index:100}
+.nav-brand{font-weight:800;font-size:16px;color:#fff;letter-spacing:-.5px}
+.nav-brand span{color:var(--purple)}
+.nav-links a{padding:6px 14px;border-radius:8px;color:var(--muted);font-size:13px;font-weight:500;transition:.15s}
+.nav-links a:hover{color:#fff;background:rgba(255,255,255,.06)}
+.nav-links a.active{color:var(--purple);background:rgba(99,91,255,.18)}
+
+.page{padding:28px 32px;max-width:1300px;margin:0 auto}
+.top-bar{display:flex;align-items:center;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+.page-title{font-size:20px;font-weight:700;margin-right:8px}
+select{background:#1a1a2e;border:1px solid var(--border);border-radius:10px;color:#fff;padding:8px 14px;font-size:13px;cursor:pointer}
+select:focus{outline:none;border-color:var(--purple)}
+.btn{padding:9px 18px;border-radius:10px;border:none;cursor:pointer;font-size:13px;font-weight:700;transition:.15s}
+.btn-generate{background:var(--purple);color:#fff}
+.btn-generate:hover{background:#7c75ff}
+.btn-generate:disabled{opacity:.5;cursor:not-allowed}
+.filter-btns{display:flex;gap:6px;margin-left:auto}
+.filter-btn{padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;transition:.15s}
+.filter-btn:hover{color:#fff;border-color:rgba(99,91,255,.4)}
+.filter-btn.active{background:rgba(99,91,255,.15);color:var(--purple);border-color:rgba(99,91,255,.3)}
+
+/* TABLE */
+.table-wrap{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+table{width:100%;border-collapse:collapse}
+th{padding:11px 16px;text-align:left;font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.5px;border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:top}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,.02)}
+.caption-cell{max-width:360px}
+.caption-text{font-size:13px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.caption-expand{font-size:11px;color:var(--purple);cursor:pointer;margin-top:2px}
+.platform-badge{font-size:11px;padding:2px 9px;border-radius:20px;font-weight:600;background:rgba(99,91,255,.15);color:#a5b4fc;white-space:nowrap}
+.status-badge{font-size:11px;padding:3px 10px;border-radius:20px;font-weight:700;white-space:nowrap}
+.s-pending{background:rgba(245,158,11,.12);color:var(--yellow)}
+.s-approved{background:rgba(6,214,160,.12);color:var(--cyan)}
+.s-posted{background:rgba(99,91,255,.12);color:#a5b4fc}
+.s-rejected,.s-failed,.s-deleted{background:rgba(239,68,68,.1);color:var(--red)}
+.actions{display:flex;gap:5px;white-space:nowrap}
+.act-btn{padding:5px 10px;border-radius:7px;border:none;cursor:pointer;font-size:11px;font-weight:700;transition:.15s}
+.act-approve{background:rgba(6,214,160,.15);color:var(--cyan)}
+.act-approve:hover{background:rgba(6,214,160,.3)}
+.act-reject{background:rgba(239,68,68,.08);color:var(--red)}
+.act-reject:hover{background:rgba(239,68,68,.2)}
+.act-publish{background:var(--purple);color:#fff}
+.act-publish:hover{background:#7c75ff}
+.act-delete{background:rgba(255,255,255,.06);color:var(--muted)}
+.act-delete:hover{background:rgba(255,255,255,.1)}
+.empty{color:var(--muted);text-align:center;padding:48px;font-size:13px}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:500;backdrop-filter:blur(4px)}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:16px;width:480px;padding:28px;position:relative}
+.modal-title{font-size:17px;font-weight:700;margin-bottom:20px}
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+label{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.4px}
+input,textarea,select.modal-select{background:#1a1a2e;border:1px solid var(--border);border-radius:10px;color:#fff;padding:10px 14px;font-size:13px;width:100%;font-family:inherit}
+input:focus,textarea:focus{outline:none;border-color:var(--purple)}
+textarea{resize:vertical;min-height:80px}
+.modal-actions{display:flex;gap:10px;margin-top:20px;justify-content:flex-end}
+.btn-cancel{background:rgba(255,255,255,.06);color:var(--muted);border:none;border-radius:10px;padding:9px 18px;font-size:13px;font-weight:700;cursor:pointer}
+.btn-cancel:hover{color:#fff}
+
+/* GENERATED PREVIEW */
+.preview-box{background:rgba(99,91,255,.08);border:1px solid rgba(99,91,255,.2);border-radius:12px;padding:14px;margin:14px 0;font-size:13px;line-height:1.6;white-space:pre-wrap;display:none}
+
+#toast{position:fixed;bottom:24px;right:24px;background:#1e1e2e;border:1px solid var(--border);color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;opacity:0;transition:.3s;pointer-events:none;z-index:999}
+#toast.show{opacity:1}
+</style>
+</head>
+<body>
+<nav>
+  <div class="nav-brand">⚡ <span>Voxify</span></div>
+  <div class="nav-links">
+    <a href="/">Dashboard</a>
+    <a href="/brands">Marcas</a>
+    <a href="/content" class="active">Contenido</a>
+  </div>
+</nav>
+
+<div class="page">
+  <div class="top-bar">
+    <div class="page-title">Contenido</div>
+    <select id="brand-filter" onchange="loadPosts()">
+      <option value="">Todas las marcas</option>
+      {% for b in brands %}
+      <option value="{{ b.id }}">{{ b.name }}</option>
+      {% endfor %}
+    </select>
+    <button class="btn btn-generate" onclick="openGenerateModal()">⚡ Generar post</button>
+    <div class="filter-btns">
+      <button class="filter-btn active" data-status="" onclick="setFilter(this,'')">Todos</button>
+      <button class="filter-btn" data-status="pending" onclick="setFilter(this,'pending')">Pendientes</button>
+      <button class="filter-btn" data-status="approved" onclick="setFilter(this,'approved')">Aprobados</button>
+      <button class="filter-btn" data-status="posted" onclick="setFilter(this,'posted')">Publicados</button>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th><th>MARCA</th><th>CAPTION</th><th>PLATAFORMA</th>
+          <th>ESTADO</th><th>FECHA</th><th>ACCIONES</th>
+        </tr>
+      </thead>
+      <tbody id="posts-table"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Generate modal -->
+<div class="modal-overlay" id="gen-modal" style="display:none" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-title">⚡ Generar post con IA</div>
+    <div class="field">
+      <label>MARCA</label>
+      <select id="gen-brand" class="modal-select">
+        {% for b in brands %}<option value="{{ b.id }}">{{ b.name }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label>PLATAFORMA</label>
+      <select id="gen-platform" class="modal-select">
+        <option value="instagram">Instagram</option>
+        <option value="facebook">Facebook</option>
+        <option value="both">Instagram + Facebook</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>TEMA (opcional)</label>
+      <input id="gen-topic" placeholder="ej: lanzamiento de producto, tips, motivación...">
+    </div>
+    <div class="preview-box" id="gen-preview"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-generate" id="gen-btn" onclick="generatePost()">⚡ Generar y guardar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── Initial data from server ───────────────────────────────────────────────
+const initialPosts = {{ posts | tojson }};
+let allPosts = initialPosts;
+let currentStatus = '';
+let currentBrand = '';
+
+function toast(msg, err) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.borderColor = err ? '#ef4444' : 'rgba(255,255,255,.12)';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+function setFilter(btn, status) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentStatus = status;
+  loadPosts();
+}
+
+async function loadPosts() {
+  currentBrand = document.getElementById('brand-filter').value;
+  let url = `/api/posts?limit=200`;
+  if (currentBrand) url += `&brand_id=${currentBrand}`;
+  if (currentStatus) url += `&status=${currentStatus}`;
+  const r = await fetch(url);
+  allPosts = await r.json();
+  renderTable();
+}
+
+function renderTable() {
+  const tbody = document.getElementById('posts-table');
+  if (!allPosts.length) {
+    tbody.innerHTML = `<tr><td colspan="7"><div class="empty">Sin posts${currentStatus ? ' con estado "' + currentStatus + '"' : ''}</div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = allPosts.map(p => `
+  <tr id="row-${p.id}">
+    <td style="color:var(--muted);font-size:12px">#${p.id}</td>
+    <td><span style="color:${p.brand_color||'#635BFF'};font-weight:700;font-size:13px">${p.brand_name||p.brand_id}</span></td>
+    <td class="caption-cell">
+      <div class="caption-text" id="cap-${p.id}">${escHtml(p.caption)}</div>
+      <div class="caption-expand" onclick="toggleCaption(${p.id})">Ver más</div>
+    </td>
+    <td><span class="platform-badge">${p.platform}</span></td>
+    <td><span class="status-badge s-${p.status}">${statusLabel(p.status)}</span></td>
+    <td style="color:var(--muted);font-size:12px;white-space:nowrap">${(p.posted_at||p.created_at||'').slice(0,16)}</td>
+    <td class="actions">${actionsFor(p)}</td>
+  </tr>`).join('');
+}
+
+function escHtml(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>'); }
+function statusLabel(s) { return {pending:'Pendiente',approved:'Aprobado',posted:'Publicado',rejected:'Rechazado',failed:'Fallido',deleted:'Eliminado'}[s]||s; }
+function actionsFor(p) {
+  const acts = [];
+  if (p.status === 'pending') {
+    acts.push(`<button class="act-btn act-approve" onclick="approvePost(${p.id})">✓ Aprobar</button>`);
+    acts.push(`<button class="act-btn act-reject" onclick="rejectPost(${p.id})">✗</button>`);
+  }
+  if (p.status === 'approved') {
+    acts.push(`<button class="act-btn act-publish" onclick="publishPost(${p.id})">↑ Publicar</button>`);
+  }
+  if (!['deleted','posted'].includes(p.status)) {
+    acts.push(`<button class="act-btn act-delete" onclick="deletePost(${p.id})">🗑</button>`);
+  }
+  return acts.join('');
+}
+
+function toggleCaption(id) {
+  const el = document.getElementById(`cap-${id}`);
+  const expanded = el.style.webkitLineClamp === 'unset';
+  el.style.webkitLineClamp = expanded ? '2' : 'unset';
+  el.style.overflow = expanded ? 'hidden' : 'visible';
+  el.nextElementSibling.textContent = expanded ? 'Ver más' : 'Ver menos';
+}
+
+async function approvePost(id) {
+  const r = await fetch(`/api/posts/${id}/approve`, {method:'POST'});
+  const d = await r.json();
+  if (d.success) { toast('✓ Post aprobado'); loadPosts(); }
+  else toast('Error: ' + d.error, true);
+}
+
+async function rejectPost(id) {
+  const r = await fetch(`/api/posts/${id}/reject`, {method:'POST'});
+  const d = await r.json();
+  if (d.success) { toast('Post rechazado'); loadPosts(); }
+  else toast('Error: ' + d.error, true);
+}
+
+async function publishPost(id) {
+  const btn = document.querySelector(`#row-${id} .act-publish`);
+  if (btn) { btn.disabled = true; btn.textContent = '...'; }
+  const r = await fetch(`/api/posts/${id}/publish`, {method:'POST'});
+  const d = await r.json();
+  if (d.success) { toast('✓ Publicado en Meta'); loadPosts(); }
+  else toast('Error: ' + (d.errors||[]).join(', '), true);
+}
+
+async function deletePost(id) {
+  if (!confirm('¿Eliminar este post?')) return;
+  await fetch(`/api/posts/${id}`, {method:'DELETE'});
+  toast('Post eliminado');
+  loadPosts();
+}
+
+// ── Generate modal ────────────────────────────────────────────────────────────
+function openGenerateModal() {
+  const sel = document.getElementById('brand-filter').value;
+  if (sel) document.getElementById('gen-brand').value = sel;
+  document.getElementById('gen-topic').value = '';
+  document.getElementById('gen-preview').style.display = 'none';
+  document.getElementById('gen-btn').textContent = '⚡ Generar y guardar';
+  document.getElementById('gen-btn').disabled = false;
+  document.getElementById('gen-modal').style.display = 'flex';
+}
+function closeModal() { document.getElementById('gen-modal').style.display = 'none'; }
+
+async function generatePost() {
+  const brandId = document.getElementById('gen-brand').value;
+  if (!brandId) { toast('Selecciona una marca', true); return; }
+  const platform = document.getElementById('gen-platform').value;
+  const topic    = document.getElementById('gen-topic').value;
+  const btn      = document.getElementById('gen-btn');
+  btn.disabled = true;
+  btn.textContent = 'Generando...';
+
+  try {
+    const r = await fetch(`/api/generate/${brandId}`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({platform, topic, save: true}),
+    });
+    const d = await r.json();
+    if (d.success && d.post?.caption) {
+      const preview = document.getElementById('gen-preview');
+      preview.textContent = d.post.caption;
+      preview.style.display = 'block';
+      btn.textContent = '✓ Guardado — Cerrar';
+      btn.onclick = () => { closeModal(); loadPosts(); };
+      btn.disabled = false;
+      toast(`✓ Post generado para ${brandId}`);
+    } else {
+      toast('Error generando post', true);
+      btn.textContent = '⚡ Generar y guardar';
+      btn.disabled = false;
+    }
+  } catch(e) {
+    toast('Error: ' + e.message, true);
+    btn.textContent = '⚡ Generar y guardar';
+    btn.disabled = false;
+  }
+}
+
+// Initial render
+renderTable();
+</script>
+</body>
+</html>
