@@ -72,12 +72,40 @@ CREATE TABLE brands (
 """
 
 
+_REQUIRED_POST_COLS = frozenset({
+    'id', 'brand_id', 'caption', 'image_url', 'video_url', 'platform',
+    'status', 'scheduled_for', 'posted_at', 'post_id_meta', 'error_msg', 'created_at',
+})
+
+_POSTS_DDL = """
+CREATE TABLE scheduled_posts (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    brand_id      TEXT NOT NULL,
+    caption       TEXT NOT NULL,
+    image_url     TEXT DEFAULT '',
+    video_url     TEXT DEFAULT '',
+    platform      TEXT DEFAULT 'instagram',
+    status        TEXT DEFAULT 'pending',
+    scheduled_for TEXT,
+    posted_at     TEXT,
+    post_id_meta  TEXT DEFAULT '',
+    error_msg     TEXT DEFAULT '',
+    created_at    TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (brand_id) REFERENCES brands(id)
+);
+"""
+
+
 def _check_and_fix_schema():
-    """Drop and recreate brands table if it's missing required columns."""
+    """Drop and recreate tables that are missing required columns."""
     with _conn() as c:
-        cols = {r[1] for r in c.execute("PRAGMA table_info(brands)").fetchall()}
-        if cols and not _REQUIRED_BRAND_COLS.issubset(cols):
+        brand_cols = {r[1] for r in c.execute("PRAGMA table_info(brands)").fetchall()}
+        if brand_cols and not _REQUIRED_BRAND_COLS.issubset(brand_cols):
             c.executescript(f"DROP TABLE IF EXISTS brands; {_BRANDS_DDL}")
+
+        post_cols = {r[1] for r in c.execute("PRAGMA table_info(scheduled_posts)").fetchall()}
+        if post_cols and not _REQUIRED_POST_COLS.issubset(post_cols):
+            c.executescript(f"DROP TABLE IF EXISTS scheduled_posts; {_POSTS_DDL}")
 
 
 def init_db():
