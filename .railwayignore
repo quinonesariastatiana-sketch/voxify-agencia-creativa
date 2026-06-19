@@ -1,0 +1,10 @@
+.env
+__pycache__
+*.pyc
+*.db
+.git
+voxify.db
+server_out.txt
+server_err.txt
+deploy_railway.bat
+.railway

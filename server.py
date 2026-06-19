@@ -1363,6 +1363,11 @@ def request_too_large(e):
     return jsonify({"error": "Archivos demasiado grandes. Máximo 200 MB por lote."}), 413
 
 
+@app.route("/health")
+def health():
+    return jsonify({"status": "ok"})
+
+
 if __name__ == "__main__":
     validate_config()
     scheduler.start()
