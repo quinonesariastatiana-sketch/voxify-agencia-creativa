@@ -110,30 +110,31 @@ def brands_page():
 
 @app.route("/api/brands/<brand_id>/research", methods=["POST"])
 def research_brand_route(brand_id):
-    from tools.brand_researcher import research_brand, apply_research_to_brand
-    data = request.get_json(force=True) or {}
+    """
+    Run 6 small focused Claude calls for brand research.
+    Each field is patched independently — failure in one call never wipes existing data.
+    """
+    from tools.brand_researcher import research_brand
+    data       = request.get_json(force=True) or {}
     brand_data = data.get("brand_data", {})
-    save_to_brand = data.get("save", False)
 
-    # Auto-load brand config from DB if brand_data not supplied
-    if not brand_data and brand_id != "preview":
-        brand_config = db.get_brand_config(brand_id)
-        if brand_config:
-            brand_data = brand_config
+    # Always load from DB to avoid stale/empty brand_data
+    if brand_id != "preview":
+        db_config = db.get_brand_config(brand_id)
+        if db_config:
+            brand_data = db_config
 
     if not brand_data:
-        return jsonify({"success": False, "error": "brand_data requerido o marca no encontrada"}), 400
+        return jsonify({"success": False, "error": "Marca no encontrada"}), 400
 
     result = research_brand(brand_data)
-    if not result.get("success"):
-        return jsonify(result), 500
 
-    if save_to_brand and brand_id != "preview":
-        brand = db.get_brand_config(brand_id)
-        if brand:
-            updated = apply_research_to_brand(brand, result["research"])
-            db.save_brand(updated)
-            reload_from_db(db)
+    # Always save whatever succeeded — safe_patch_brand never overwrites with empty values
+    if brand_id != "preview" and result.get("research"):
+        updated = db.safe_patch_brand(brand_id, result["research"])
+        reload_from_db(db)
+        _agents.pop(brand_id, None)
+        result["brand"] = updated
 
     return jsonify(result)
 
@@ -291,68 +292,46 @@ def upload_manual(brand_id):
     except Exception as e:
         text = f"[No se pudo extraer texto: {e}]"
 
-    # Save manual reference to brand config
-    brand = db.get_brand_config(brand_id) or {"id": brand_id, "name": brand_id}
-    brand["manual_path"] = str(dest)
-    brand["manual_text_preview"] = text[:8000]
-    db.save_brand(brand)
+    # Save manual path + text preview (safe patch — only these two fields)
+    db.safe_patch_brand(brand_id, {
+        "manual_path":         str(dest),
+        "manual_text_preview": text[:8000],
+    })
     reload_from_db(db)
     _agents.pop(brand_id, None)
 
-    # ── AUTO-PIPELINE: analyze + deep research (tool use — no JSON parsing) ───
-    from tools.brand_researcher import (
-        analyze_brand_resources, research_brand as deep_research, apply_research_to_brand
-    )
-    from config.settings import AGENT_MODEL
+    # ── AUTO-RESEARCH: 6 small focused calls, safe field-by-field patch ──────
+    from tools.brand_researcher import research_brand
 
-    brand_name    = brand.get("name", brand_id)
-    context       = f"== MANUAL / GUIDELINES DE MARCA ==\n{text[:8000]}"
-    analysis_result  = analyze_brand_resources(brand_name, context, model=AGENT_MODEL)
-    research_result  = {"success": False}
+    brand      = db.get_brand_config(brand_id) or {"id": brand_id, "name": brand_id}
+    # Inject manual text into description if brand has no description yet
+    if not brand.get("description") and text:
+        brand["description"] = text[:500]
 
-    if analysis_result.get("success"):
-        insights = analysis_result["insights"]
-        for field in ("name", "tagline", "description", "mission", "industry",
-                      "geography", "values", "hashtags", "voice", "audience",
-                      "positioning", "content_lines"):
-            if insights.get(field):
-                brand[field] = insights[field]
-        if insights.get("insights_summary"):
-            brand["research_summary"] = insights["insights_summary"]
-        db.save_brand(brand)
-        reload_from_db(db)
-        _agents.pop(brand_id, None)
-
-    # Deep research
-    brand = db.get_brand_config(brand_id) or brand
-    research_result = deep_research(brand)
-    if research_result.get("success"):
-        brand = apply_research_to_brand(brand, research_result["research"])
-        db.save_brand(brand)
+    result = research_brand(brand)
+    if result.get("research"):
+        db.safe_patch_brand(brand_id, result["research"])
         reload_from_db(db)
         _agents.pop(brand_id, None)
 
     return jsonify({
-        "success": True,
-        "text_preview": text[:500],
-        "chars": len(text),
-        "analysis": analysis_result,
-        "research_applied": research_result.get("success", False),
-        "brand": db.get_brand_config(brand_id),
-        "message": "Manual cargado, analizado e investigado — datos guardados automáticamente",
+        "success":          True,
+        "text_preview":     text[:500],
+        "chars":            len(text),
+        "research_applied": result.get("success", False),
+        "errors":           result.get("errors", []),
+        "brand":            db.get_brand_config(brand_id),
+        "message":          "Manual cargado e investigado — datos guardados campo por campo",
     })
 
 
 @app.route("/api/brands/<brand_id>/analyze", methods=["POST"])
 def analyze_brand(brand_id):
     """
-    Analyze brand resources (website, manual, social) with Claude tool use,
-    auto-save insights, then auto-trigger deep research. No JSON parsing needed.
+    Analyze brand from website/social/manual sources + run 6-call research.
+    Uses safe_patch_brand so partial results never wipe existing data.
     """
-    from tools.brand_researcher import (
-        analyze_brand_resources, research_brand as deep_research, apply_research_to_brand
-    )
-    from config.settings import AGENT_MODEL
+    from tools.brand_researcher import research_brand
 
     data        = request.json or {}
     website_url = data.get("website_url", "").strip()
@@ -362,8 +341,8 @@ def analyze_brand(brand_id):
 
     brand = db.get_brand_config(brand_id) or {"id": brand_id, "name": brand_name}
 
-    # Gather sources
-    sources = []
+    # Gather context for description enrichment
+    context_parts = []
     if website_url:
         try:
             from bs4 import BeautifulSoup
@@ -371,64 +350,40 @@ def analyze_brand(brand_id):
             soup = BeautifulSoup(resp.text, "html.parser")
             for tag in soup(["script", "style", "nav", "footer", "header"]):
                 tag.decompose()
-            web_text = " ".join(soup.get_text(separator=" ").split())[:6000]
-            sources.append(f"== SITIO WEB ({website_url}) ==\n{web_text}")
-        except Exception as e:
-            sources.append(f"== SITIO WEB ==\n[No se pudo acceder: {e}]")
-
-    for platform, url in social_urls.items():
-        if url and url.strip():
-            sources.append(f"== {platform.upper()} ==\nURL: {url.strip()}")
+            web_text = " ".join(soup.get_text(separator=" ").split())[:3000]
+            context_parts.append(web_text)
+            if website_url:
+                db.safe_patch_brand(brand_id, {"website_url": website_url})
+        except Exception:
+            pass
 
     if manual_text:
-        sources.append(f"== MANUAL / GUIDELINES ==\n{manual_text[:6000]}")
+        context_parts.append(manual_text[:3000])
 
     stored_manual = brand.get("manual_text_preview", "")
     if stored_manual and not manual_text:
-        sources.append(f"== MANUAL DE MARCA (cargado) ==\n{stored_manual[:5000]}")
+        context_parts.append(stored_manual[:2000])
 
-    if not sources:
-        return jsonify({"error": "Proporciona al menos el sitio web, redes sociales o un manual de marca"}), 400
+    if not context_parts and not brand.get("description") and not brand.get("industry"):
+        return jsonify({"error": "Proporciona sitio web, redes sociales o manual para analizar"}), 400
 
-    context = "\n\n".join(sources)
+    # Enrich brand description from scraped context (only if empty)
+    if context_parts and not brand.get("description"):
+        brand["description"] = " ".join(context_parts)[:500]
 
-    # ── Phase 1: extract insights via tool use (no JSON parsing) ────────────
-    analysis_result = analyze_brand_resources(brand_name, context, model=AGENT_MODEL)
-    insights = {}
-
-    if analysis_result.get("success"):
-        insights = analysis_result["insights"]
-        for field in ("name", "tagline", "description", "mission", "industry",
-                      "geography", "values", "hashtags", "voice", "audience",
-                      "positioning", "content_lines"):
-            if insights.get(field):
-                brand[field] = insights[field]
-        if insights.get("insights_summary"):
-            brand["research_summary"] = insights["insights_summary"]
-        if website_url:
-            brand["website_url"] = website_url
-        db.save_brand(brand)
-        reload_from_db(db)
-        _agents.pop(brand_id, None)
-    else:
-        return jsonify({"success": False, "error": analysis_result.get("error", "Error en análisis")}), 500
-
-    # ── Phase 2: deep competitive research via tool use ──────────────────────
-    research_result = {"success": False}
-    brand = db.get_brand_config(brand_id) or brand
-    research_result = deep_research(brand)
-    if research_result.get("success"):
-        brand = apply_research_to_brand(brand, research_result["research"])
-        db.save_brand(brand)
+    # Run 6 small research calls — safe_patch_brand patches only what succeeds
+    result = research_brand(brand)
+    if result.get("research"):
+        db.safe_patch_brand(brand_id, result["research"])
         reload_from_db(db)
         _agents.pop(brand_id, None)
 
     return jsonify({
-        "success": True,
-        "insights": insights,
-        "research_applied": research_result.get("success", False),
-        "brand": db.get_brand_config(brand_id),
-        "message": "Análisis e investigación completados — datos guardados automáticamente",
+        "success":          True,
+        "research_applied": result.get("success", False),
+        "errors":           result.get("errors", []),
+        "brand":            db.get_brand_config(brand_id),
+        "message":          "Análisis completado — datos guardados campo por campo",
     })
 
 

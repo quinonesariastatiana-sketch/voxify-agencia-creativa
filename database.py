@@ -393,6 +393,31 @@ class Database:
         self.conn.execute("DELETE FROM brands WHERE id=?", (brand_id,))
         self.conn.commit()
 
+    def safe_patch_brand(self, brand_id: str, updates: dict) -> dict:
+        """
+        Update ONLY the specified keys in config_json.
+        Never overwrites a key if the new value is empty/None.
+        Existing data is preserved if the call that generated updates failed.
+        """
+        brand = self.get_brand_config(brand_id)
+        if not brand:
+            return {}
+        changed = False
+        for key, value in updates.items():
+            if value is None:
+                continue
+            if isinstance(value, str) and not value.strip():
+                continue
+            if isinstance(value, list) and len(value) == 0:
+                continue
+            if isinstance(value, dict) and len(value) == 0:
+                continue
+            brand[key] = value
+            changed = True
+        if changed:
+            self.save_brand(brand)
+        return brand
+
     def has_brands_in_db(self) -> bool:
         return self.conn.execute("SELECT COUNT(*) FROM brands").fetchone()[0] > 0
 
