@@ -74,23 +74,28 @@ CREATE TABLE brands (
 
 _REQUIRED_POST_COLS = frozenset({
     'id', 'brand_id', 'caption', 'image_url', 'video_url', 'platform',
-    'status', 'scheduled_for', 'posted_at', 'post_id_meta', 'error_msg', 'created_at',
+    'status', 'scheduled_for', 'posted_at', 'post_id_meta', 'error_msg',
+    'created_at', 'content_type', 'suggested_day', 'suggested_time', 'extra_json',
 })
 
 _POSTS_DDL = """
 CREATE TABLE scheduled_posts (
-    id            INTEGER PRIMARY KEY AUTOINCREMENT,
-    brand_id      TEXT NOT NULL,
-    caption       TEXT NOT NULL,
-    image_url     TEXT DEFAULT '',
-    video_url     TEXT DEFAULT '',
-    platform      TEXT DEFAULT 'instagram',
-    status        TEXT DEFAULT 'pending',
-    scheduled_for TEXT,
-    posted_at     TEXT,
-    post_id_meta  TEXT DEFAULT '',
-    error_msg     TEXT DEFAULT '',
-    created_at    TEXT DEFAULT (datetime('now')),
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    brand_id       TEXT NOT NULL,
+    caption        TEXT NOT NULL,
+    image_url      TEXT DEFAULT '',
+    video_url      TEXT DEFAULT '',
+    platform       TEXT DEFAULT 'instagram',
+    status         TEXT DEFAULT 'pending',
+    scheduled_for  TEXT,
+    posted_at      TEXT,
+    post_id_meta   TEXT DEFAULT '',
+    error_msg      TEXT DEFAULT '',
+    content_type   TEXT DEFAULT 'post',
+    suggested_day  TEXT DEFAULT '',
+    suggested_time TEXT DEFAULT '',
+    extra_json     TEXT DEFAULT '{}',
+    created_at     TEXT DEFAULT (datetime('now')),
     FOREIGN KEY (brand_id) REFERENCES brands(id)
 );
 """
@@ -178,6 +183,18 @@ def init_db():
             data       TEXT DEFAULT '{}',
             expires_at TEXT NOT NULL,
             created_at TEXT DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS brand_schedule (
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            brand_id     TEXT NOT NULL,
+            platform     TEXT DEFAULT 'instagram',
+            days_of_week TEXT DEFAULT '[1,3,5]',
+            time_of_day  TEXT DEFAULT '10:00',
+            active       INTEGER DEFAULT 1,
+            updated_at   TEXT DEFAULT (datetime('now')),
+            UNIQUE(brand_id, platform),
+            FOREIGN KEY (brand_id) REFERENCES brands(id)
         );
         """)
     _check_and_fix_schema()
@@ -293,12 +310,17 @@ def delete_brand(brand_id: str):
 # ── Posts ─────────────────────────────────────────────────────────────────────
 
 def create_post(brand_id: str, caption: str, image_url: str = '',
-                platform: str = 'instagram', scheduled_for: str = None) -> int:
+                platform: str = 'instagram', scheduled_for: str = None,
+                content_type: str = 'post', suggested_day: str = '',
+                suggested_time: str = '', extra_json: str = '{}') -> int:
     with _conn() as c:
         cur = c.execute(
-            "INSERT INTO scheduled_posts (brand_id, caption, image_url, platform, scheduled_for) "
-            "VALUES (?,?,?,?,?)",
-            (brand_id, caption, image_url, platform, scheduled_for)
+            "INSERT INTO scheduled_posts "
+            "(brand_id, caption, image_url, platform, scheduled_for, "
+            " content_type, suggested_day, suggested_time, extra_json) "
+            "VALUES (?,?,?,?,?,?,?,?,?)",
+            (brand_id, caption, image_url, platform, scheduled_for,
+             content_type, suggested_day, suggested_time, extra_json)
         )
     return cur.lastrowid
 
@@ -341,3 +363,38 @@ def get_approved_pending_posts() -> list:
               AND (sp.scheduled_for IS NULL OR sp.scheduled_for <= datetime('now'))
         """).fetchall()
     return [dict(r) for r in rows]
+
+
+# ── Schedule config ───────────────────────────────────────────────────────────
+
+def get_schedule(brand_id: str) -> list:
+    with _conn() as c:
+        rows = c.execute(
+            "SELECT * FROM brand_schedule WHERE brand_id=? AND active=1",
+            (brand_id,)
+        ).fetchall()
+    result = []
+    for r in [dict(row) for row in rows]:
+        try:
+            r['days_of_week'] = json.loads(r.get('days_of_week', '[]'))
+        except Exception:
+            r['days_of_week'] = []
+        result.append(r)
+    return result
+
+
+def save_schedule(brand_id: str, configs: list):
+    with _conn() as c:
+        for cfg in configs:
+            platform = cfg.get('platform', 'instagram')
+            c.execute("""
+                INSERT INTO brand_schedule
+                    (brand_id, platform, days_of_week, time_of_day, updated_at)
+                VALUES (?, ?, ?, ?, datetime('now'))
+                ON CONFLICT(brand_id, platform) DO UPDATE SET
+                    days_of_week = excluded.days_of_week,
+                    time_of_day  = excluded.time_of_day,
+                    updated_at   = excluded.updated_at
+            """, (brand_id, platform,
+                  json.dumps(cfg.get('days_of_week', [])),
+                  cfg.get('time_of_day', '10:00')))

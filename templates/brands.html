@@ -59,12 +59,17 @@ small{color:var(--muted);font-size:11px}
 .section-title{font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.4px;margin-bottom:14px}
 
 /* RESEARCH PANEL */
-.research-panel{background:var(--sidebar);border-left:1px solid var(--border);width:340px;flex-shrink:0;display:flex;flex-direction:column;overflow:hidden}
-.rp-head{padding:16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.research-panel{background:var(--sidebar);border-left:1px solid var(--border);width:360px;flex-shrink:0;display:flex;flex-direction:column;overflow:hidden}
+.rp-head{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
 .rp-title{font-size:13px;font-weight:700}
 .btn-research{background:rgba(6,214,160,.15);color:var(--cyan);border:1px solid rgba(6,214,160,.2);border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;transition:.15s}
 .btn-research:hover{background:rgba(6,214,160,.25)}
 .btn-research:disabled{opacity:.4;cursor:not-allowed}
+.modules-bar{padding:10px 16px;border-bottom:1px solid var(--border);display:flex;flex-wrap:wrap;gap:6px}
+.mod-chip{display:flex;align-items:center;gap:4px;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:20px;padding:3px 9px;font-size:11px;font-weight:600;cursor:pointer;transition:.15s;color:var(--muted)}
+.mod-chip:hover{border-color:rgba(99,91,255,.4);color:#fff}
+.mod-chip input{accent-color:var(--purple);cursor:pointer;margin:0}
+.mod-chip.checked{background:rgba(99,91,255,.12);border-color:rgba(99,91,255,.3);color:#a5b4fc}
 .rp-body{flex:1;overflow-y:auto;padding:16px}
 .rp-empty{color:var(--muted);font-size:12px;text-align:center;padding:32px 16px}
 .r-section{margin-bottom:20px}
@@ -77,6 +82,10 @@ small{color:var(--muted);font-size:11px}
 .progress-bar{height:4px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden;margin-bottom:8px}
 .progress-fill{height:100%;background:var(--purple);transition:width .5s;border-radius:2px}
 .progress-label{font-size:11px;color:var(--muted);margin-bottom:16px}
+.baseline-card{background:rgba(6,214,160,.06);border:1px solid rgba(6,214,160,.15);border-radius:10px;padding:12px;margin-bottom:16px}
+.baseline-title{font-size:10px;font-weight:700;color:var(--cyan);letter-spacing:.5px;margin-bottom:8px}
+.baseline-row{display:flex;justify-content:space-between;font-size:11px;padding:2px 0;color:rgba(255,255,255,.7)}
+.baseline-val{font-weight:700;color:#fff}
 
 /* WELCOME */
 .welcome{flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;color:var(--muted);text-align:center;padding:40px}
@@ -134,14 +143,24 @@ small{color:var(--muted);font-size:11px}
       <div class="rp-title">⚡ Investigación IA</div>
       <button class="btn-research" id="research-btn" onclick="runResearch()" disabled>Generar</button>
     </div>
+    <!-- Module checkboxes -->
+    <div class="modules-bar" id="modules-bar">
+      <label class="mod-chip checked" id="chip-competitors"><input type="checkbox" id="m-competitors" checked onchange="updateChip('competitors')"> Competidores</label>
+      <label class="mod-chip checked" id="chip-audience"><input type="checkbox" id="m-audience" checked onchange="updateChip('audience')"> Audiencia</label>
+      <label class="mod-chip checked" id="chip-uvp"><input type="checkbox" id="m-uvp" checked onchange="updateChip('uvp')"> Propuesta</label>
+      <label class="mod-chip checked" id="chip-hashtags"><input type="checkbox" id="m-hashtags" checked onchange="updateChip('hashtags')"> Hashtags</label>
+      <label class="mod-chip checked" id="chip-kpis"><input type="checkbox" id="m-kpis" checked onchange="updateChip('kpis')"> KPIs reales</label>
+      <label class="mod-chip checked" id="chip-strategy"><input type="checkbox" id="m-strategy" checked onchange="updateChip('strategy')"> Estrategia</label>
+    </div>
     <div class="rp-body" id="rp-body">
       <div class="rp-empty" id="rp-empty">
-        Selecciona una marca y haz clic en <strong>Generar</strong> para lanzar investigación profunda con IA.
+        Selecciona una marca y haz clic en <strong>Generar</strong>. Los KPIs se basan en datos reales de Meta.
       </div>
       <div id="rp-progress" style="display:none">
         <div class="progress-bar"><div class="progress-fill" id="prog-fill" style="width:10%"></div></div>
         <div class="progress-label" id="prog-label">Iniciando investigación...</div>
       </div>
+      <div id="baseline-display" style="display:none"></div>
       <div id="rp-results" style="display:none"></div>
     </div>
   </div>
@@ -152,6 +171,103 @@ small{color:var(--muted);font-size:11px}
 <script>
 let currentBrandId = null;
 let isNewBrand = false;
+let scheduleData = {};
+
+const DAYS = ['L','M','X','J','V','S','D'];
+
+function updateChip(mod) {
+  const checked = document.getElementById(`m-${mod}`).checked;
+  document.getElementById(`chip-${mod}`).classList.toggle('checked', checked);
+}
+
+function getSelectedModules() {
+  return ['competitors','audience','uvp','hashtags','kpis','strategy']
+    .filter(m => document.getElementById(`m-${m}`)?.checked);
+}
+
+function scheduleHtml(brandId) {
+  const platforms = [{id:'instagram',label:'📸 Instagram',defaults:[1,3,5],time:'10:00'},
+                     {id:'facebook', label:'👍 Facebook', defaults:[0,2,4],time:'11:00'}];
+  return platforms.map(p => `
+    <div style="background:#1a1a2e;border-radius:10px;padding:12px;margin-bottom:10px">
+      <div style="font-size:12px;font-weight:700;color:#a5b4fc;margin-bottom:8px">${p.label}</div>
+      <div style="display:flex;gap:6px;margin-bottom:8px">
+        ${DAYS.map((d,i) => `
+          <label style="cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px">
+            <input type="checkbox" id="sched-${p.id}-${i}" style="width:auto;margin:0;accent-color:#635BFF"
+              ${p.defaults.includes(i)?'checked':''}>
+            <span style="font-size:10px;color:var(--muted)">${d}</span>
+          </label>`).join('')}
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <label style="font-size:11px;color:var(--muted);white-space:nowrap">Hora:</label>
+        <input type="time" id="sched-${p.id}-time" value="${p.time}"
+          style="width:110px;background:#0d0d1a;border:1px solid var(--border);border-radius:6px;color:#fff;padding:5px 8px;font-size:12px">
+      </div>
+    </div>`).join('') +
+  `<button class="btn btn-save" style="font-size:12px;padding:7px 16px" onclick="saveSchedule()">💾 Guardar schedule</button>`;
+}
+
+async function saveSchedule() {
+  if (!currentBrandId) return;
+  const configs = ['instagram','facebook'].map(p => ({
+    platform:     p,
+    days_of_week: DAYS.map((_,i) => document.getElementById(`sched-${p}-${i}`)?.checked ? i : null).filter(v => v !== null),
+    time_of_day:  document.getElementById(`sched-${p}-time`)?.value || '10:00',
+  }));
+  const r = await fetch(`/api/schedule/${currentBrandId}`, {
+    method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(configs)
+  });
+  const d = await r.json();
+  if (d.success) toast('✓ Schedule guardado');
+  else toast('Error guardando schedule', true);
+}
+
+async function loadSchedule(brandId) {
+  try {
+    const r = await fetch(`/api/schedule/${brandId}`);
+    const list = await r.json();
+    list.forEach(cfg => {
+      const p = cfg.platform;
+      (cfg.days_of_week || []).forEach(day => {
+        const el = document.getElementById(`sched-${p}-${day}`);
+        if (el) { el.checked = true; }
+      });
+      // Uncheck defaults not in config
+      DAYS.forEach((_,i) => {
+        if (!cfg.days_of_week.includes(i)) {
+          const el = document.getElementById(`sched-${p}-${i}`);
+          if (el) el.checked = false;
+        }
+      });
+      const timeEl = document.getElementById(`sched-${p}-time`);
+      if (timeEl && cfg.time_of_day) timeEl.value = cfg.time_of_day;
+    });
+  } catch(e) {}
+}
+
+function renderBaseline(baseline) {
+  const el = document.getElementById('baseline-display');
+  if (!el) return;
+  const ig = baseline?.instagram || {};
+  const fb = baseline?.facebook  || {};
+  if (!ig.followers && !fb.fans) { el.style.display='none'; return; }
+  let html = `<div class="baseline-card"><div class="baseline-title">📊 DATOS REALES DE META</div>`;
+  if (ig.followers !== undefined) {
+    html += `<div class="baseline-row"><span>Instagram seguidores</span><span class="baseline-val">${ig.followers?.toLocaleString()}</span></div>`;
+    html += `<div class="baseline-row"><span>Engagement rate</span><span class="baseline-val">${ig.engagement_rate_pct}%</span></div>`;
+    if (ig.content_mix) {
+      const mix = Object.entries(ig.content_mix).map(([k,v])=>`${k}:${v}`).join(' · ');
+      html += `<div class="baseline-row"><span>Mix de contenido</span><span class="baseline-val" style="font-size:10px">${mix}</span></div>`;
+    }
+  }
+  if (fb.fans) {
+    html += `<div class="baseline-row" style="margin-top:4px"><span>Facebook fans</span><span class="baseline-val">${fb.fans?.toLocaleString()}</span></div>`;
+  }
+  html += `</div>`;
+  el.innerHTML = html;
+  el.style.display = 'block';
+}
 
 function toast(msg, err) {
   const t = document.getElementById('toast');
@@ -183,11 +299,13 @@ async function selectBrand(id) {
   const r = await fetch(`/api/brands/${id}`);
   const brand = await r.json();
   renderForm(brand);
+  loadSchedule(id);
   if (brand.last_research) renderResearch(brand);
   else {
     document.getElementById('rp-results').style.display = 'none';
+    document.getElementById('baseline-display').style.display = 'none';
     document.getElementById('rp-empty').style.display = 'block';
-    document.getElementById('rp-empty').innerHTML = 'Haz clic en <strong>Generar</strong> para iniciar la investigación de esta marca.';
+    document.getElementById('rp-empty').innerHTML = 'Haz clic en <strong>Generar</strong> para iniciar la investigación. Los KPIs se basarán en datos reales de Meta.';
   }
 }
 
@@ -221,8 +339,17 @@ function renderForm(b) {
       <div class="field"><label>FACEBOOK PAGE ID</label><input id="f-fb-id" placeholder="1070..." value="${esc(b?.facebook_page_id)}"></div>
     </div>
 
+    <div class="divider"></div>
+    <div class="section-title">SCHEDULE — PUBLICACIÓN AUTOMÁTICA</div>
+    <div id="schedule-config" style="margin-bottom:20px">
+      <div style="color:var(--muted);font-size:12px;margin-bottom:12px">
+        ${isNew ? 'Guarda la marca primero para configurar el schedule.' : 'Define cuándo publicar por plataforma. El scheduler autónomo usa esta configuración.'}
+      </div>
+      ${!isNew ? scheduleHtml(b?.id) : ''}
+    </div>
+
     <div class="form-actions">
-      <button class="btn btn-save" onclick="saveBrand()">💾 Guardar</button>
+      <button class="btn btn-save" onclick="saveBrand()">💾 Guardar marca</button>
       ${!isNew ? `<button class="btn btn-delete" onclick="deleteBrand()">Eliminar marca</button>` : ''}
     </div>
   </div>`;
@@ -330,9 +457,10 @@ async function runResearch() {
 
   try {
     const form = collectForm();
+    const modules = getSelectedModules();
     const r = await fetch(`/api/research/${currentBrandId}`, {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(form),
+      body: JSON.stringify({...form, modules}),
     });
     const data = await r.json();
     clearInterval(interval);
@@ -341,6 +469,7 @@ async function runResearch() {
     if (!data.success && !data.research) {
       toast('Error: ' + (data.error || 'Investigación fallida'), true);
     } else {
+      if (data.baseline) renderBaseline(data.baseline);
       const merged = Object.assign({}, form, data.research || {});
       renderResearch(merged);
       toast(`✓ Investigación completada — ${data.fields_filled || '?'} campos`);

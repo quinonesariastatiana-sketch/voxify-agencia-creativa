@@ -21,6 +21,7 @@ import database as db
 import agent
 import publisher
 import scheduler as sched
+import meta_insights
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'voxify-secret-2026')
@@ -132,18 +133,28 @@ def api_research(brand_id):
     if not brand:
         return jsonify({'success': False, 'error': 'Brand not found'}), 404
 
-    extra = request.get_json(force=True) or {}
-    for k, v in extra.items():
+    data = request.get_json(force=True) or {}
+    modules = data.pop('modules', None)
+    for k, v in data.items():
         if v and k not in ('id',):
             brand[k] = v
 
-    result = agent.research_brand(brand)
+    result = agent.research_brand(brand, modules=modules)
 
     if result.get('research'):
         updated = db.safe_patch_brand(brand_id, result['research'])
         result['brand'] = updated
 
     return jsonify(result)
+
+
+@app.route('/api/insights/<brand_id>', methods=['GET'])
+def api_insights(brand_id):
+    brand = db.get_brand(brand_id)
+    if not brand:
+        return jsonify({'error': 'Not found'}), 404
+    baseline = meta_insights.brand_baseline(brand)
+    return jsonify({'success': True, 'baseline': baseline})
 
 
 # ── API: Content Generation ───────────────────────────────────────────────────
@@ -304,9 +315,70 @@ def api_seed():
                         'trace': _tb.format_exc()[-2000:]}), 500
 
 
+# ── API: Content Grid ─────────────────────────────────────────────────────────
+
+@app.route('/api/generate-grid/<brand_id>', methods=['POST'])
+def api_generate_grid(brand_id):
+    brand = db.get_brand(brand_id)
+    if not brand:
+        return jsonify({'success': False, 'error': 'Brand not found'}), 404
+
+    data     = request.get_json(force=True) or {}
+    weeks    = int(data.get('weeks', 1))
+    platforms = data.get('platforms', ['instagram'])
+    config   = {
+        'weeks':          weeks,
+        'post_count':     int(data.get('post_count', 3)),
+        'reel_count':     int(data.get('reel_count', 2)),
+        'story_count':    int(data.get('story_count', 5)),
+        'carousel_count': int(data.get('carousel_count', 1)),
+        'platforms':      platforms,
+        'topic':          data.get('topic', ''),
+    }
+
+    result = agent.generate_grid(brand, **config)
+
+    if data.get('save') and result.get('grid'):
+        import json as _json
+        saved_ids = []
+        for item in result['grid']:
+            extra = {k: v for k, v in item.items()
+                     if k not in ('caption', 'platform', 'content_type',
+                                  'suggested_day', 'suggested_time', 'hashtags')}
+            post_id = db.create_post(
+                brand_id,
+                item.get('caption', ''),
+                platform      = item.get('platform', 'instagram'),
+                content_type  = item.get('content_type', 'post'),
+                suggested_day = item.get('day', ''),
+                suggested_time= item.get('time', ''),
+                extra_json    = _json.dumps(extra),
+            )
+            saved_ids.append(post_id)
+        result['saved_ids'] = saved_ids
+
+    return jsonify(result)
+
+
+# ── API: Schedule Config ───────────────────────────────────────────────────────
+
+@app.route('/api/schedule/<brand_id>', methods=['GET'])
+def api_get_schedule(brand_id):
+    return jsonify(db.get_schedule(brand_id))
+
+
+@app.route('/api/schedule/<brand_id>', methods=['POST'])
+def api_save_schedule(brand_id):
+    configs = request.get_json(force=True) or []
+    if not isinstance(configs, list):
+        configs = [configs]
+    db.save_schedule(brand_id, configs)
+    return jsonify({'success': True, 'schedule': db.get_schedule(brand_id)})
+
+
 # ── Entry Point ───────────────────────────────────────────────────────────────
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     logger.info(f"Starting Voxify Agencia on port {port}")
-    app.run(host='0.0.0.0', port=port, debug=False)
+    app.run(host='0.0.0.0', port=port, debug=False, threaded=True)
