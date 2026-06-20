@@ -194,7 +194,7 @@ textarea{resize:vertical;min-height:80px}
         <label>IMÁGENES IA</label>
         <label style="display:flex;align-items:center;gap:8px;padding-top:6px;font-size:12px;font-weight:400;color:var(--text);cursor:pointer">
           <input type="checkbox" id="grid-images" style="accent-color:#635BFF">
-          🖼 Generar fotos con fal.ai <span style="color:var(--muted)">(+30s)</span>
+          🎬 Generar fotos + videos con fal.ai <span style="color:var(--muted)">(posts=foto, reels/stories=video)</span>
         </label>
       </div>
     </div>
@@ -450,7 +450,12 @@ function renderGridPreview(grid) {
   const typeColors = {post:'#a5b4fc',reel:'#f87171',story:'#f59e0b',carousel:'#06d6a0'};
   const html = grid.map(item => `
     <div style="background:rgba(255,255,255,.04);border-radius:8px;padding:10px;margin-bottom:6px;border-left:3px solid ${typeColors[item.content_type]||'#635BFF'};display:flex;gap:10px">
-      ${item.image_url ? `<img src="${item.image_url}" style="width:60px;height:60px;object-fit:cover;border-radius:6px;flex-shrink:0" onerror="this.style.display='none'">` : ''}
+      ${item.video_url
+        ? `<video src="${item.video_url}" style="width:60px;height:60px;object-fit:cover;border-radius:6px;flex-shrink:0" autoplay muted loop playsinline></video>`
+        : item.image_url
+          ? `<img src="${item.image_url}" style="width:60px;height:60px;object-fit:cover;border-radius:6px;flex-shrink:0" onerror="this.style.display='none'">`
+          : ''
+      }
       <div style="flex:1;min-width:0">
         <div style="display:flex;gap:6px;align-items:center;margin-bottom:4px;flex-wrap:wrap">
           <span style="font-size:10px;font-weight:700;color:${typeColors[item.content_type]||'#635BFF'}">${typeLabel(item.content_type).toUpperCase()}</span>

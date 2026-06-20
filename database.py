@@ -310,16 +310,17 @@ def delete_brand(brand_id: str):
 # ── Posts ─────────────────────────────────────────────────────────────────────
 
 def create_post(brand_id: str, caption: str, image_url: str = '',
-                platform: str = 'instagram', scheduled_for: str = None,
-                content_type: str = 'post', suggested_day: str = '',
-                suggested_time: str = '', extra_json: str = '{}') -> int:
+                video_url: str = '', platform: str = 'instagram',
+                scheduled_for: str = None, content_type: str = 'post',
+                suggested_day: str = '', suggested_time: str = '',
+                extra_json: str = '{}') -> int:
     with _conn() as c:
         cur = c.execute(
             "INSERT INTO scheduled_posts "
-            "(brand_id, caption, image_url, platform, scheduled_for, "
+            "(brand_id, caption, image_url, video_url, platform, scheduled_for, "
             " content_type, suggested_day, suggested_time, extra_json) "
-            "VALUES (?,?,?,?,?,?,?,?,?)",
-            (brand_id, caption, image_url, platform, scheduled_for,
+            "VALUES (?,?,?,?,?,?,?,?,?,?)",
+            (brand_id, caption, image_url, video_url, platform, scheduled_for,
              content_type, suggested_day, suggested_time, extra_json)
         )
     return cur.lastrowid

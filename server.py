@@ -346,12 +346,13 @@ def api_generate_grid(brand_id):
         saved_ids = []
         for item in result['grid']:
             extra = {k: v for k, v in item.items()
-                     if k not in ('caption', 'image_url', 'platform', 'content_type',
-                                  'suggested_day', 'suggested_time', 'hashtags')}
+                     if k not in ('caption', 'image_url', 'video_url', 'platform',
+                                  'content_type', 'suggested_day', 'suggested_time', 'hashtags')}
             post_id = db.create_post(
                 brand_id,
                 item.get('caption', ''),
                 image_url     = item.get('image_url', ''),
+                video_url     = item.get('video_url', ''),
                 platform      = item.get('platform', 'instagram'),
                 content_type  = item.get('content_type', 'post'),
                 suggested_day = item.get('day', ''),
@@ -378,12 +379,13 @@ def api_bulk_save_posts():
     saved_ids = []
     for item in items:
         extra = {k: v for k, v in item.items()
-                 if k not in ('caption', 'image_url', 'platform', 'content_type',
-                              'day', 'time', 'hashtags')}
+                 if k not in ('caption', 'image_url', 'video_url', 'platform',
+                              'content_type', 'day', 'time', 'hashtags')}
         post_id = db.create_post(
             brand_id,
             item.get('caption', ''),
             image_url     = item.get('image_url', ''),
+            video_url     = item.get('video_url', ''),
             platform      = item.get('platform', 'instagram'),
             content_type  = item.get('content_type', 'post'),
             suggested_day = item.get('day', ''),

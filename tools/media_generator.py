@@ -32,6 +32,13 @@ VIDEO_MODELS = {
 }
 DEFAULT_VIDEO_MODEL = "kling"
 
+TEXT_TO_VIDEO_MODELS = {
+    "kling": "fal-ai/kling-video/v1.6/standard/text-to-video",
+    "wan":   "fal-ai/wan/t2v-1.3",
+    "ltx":   "fal-ai/ltx-video",
+}
+DEFAULT_T2V_MODEL = "kling"
+
 # VoxifyHub brand sound identity
 VOXIFY_SOUND_IDENTITY = {
     "music_prompt": (
@@ -95,7 +102,50 @@ def generate_image(prompt: str, platform_format: str = "instagram_post") -> dict
         return {"error": str(e)}
 
 
-# ── Video generation ──────────────────────────────────────────────────────
+# ── Text-to-video generation ──────────────────────────────────────────────────
+
+def generate_video_from_text(prompt: str, aspect_ratio: str = "9:16",
+                              duration: int = 5,
+                              model: str = DEFAULT_T2V_MODEL) -> dict:
+    """Generate video directly from a text prompt (no source image needed)."""
+    from config.settings import IMAGES_ENABLED
+    if not IMAGES_ENABLED:
+        return {"error": "FAL_API_KEY no configurado."}
+
+    model_id = TEXT_TO_VIDEO_MODELS.get(model, TEXT_TO_VIDEO_MODELS["kling"])
+    try:
+        fal = _fal_client()
+        if model == "kling":
+            args = {"prompt": prompt, "duration": str(duration), "aspect_ratio": aspect_ratio}
+        elif model == "wan":
+            args = {"prompt": prompt, "aspect_ratio": aspect_ratio}
+        else:  # ltx
+            args = {"prompt": prompt, "aspect_ratio": aspect_ratio}
+
+        logger.info(f"Generando video T2V con {model} ({model_id})...")
+        result = fal.run(model_id, arguments=args)
+        video_url = (
+            result.get("video", {}).get("url")
+            or result.get("video_url")
+            or (result.get("videos") or [{}])[0].get("url")
+        )
+        if not video_url:
+            raise ValueError(f"No video URL en respuesta: {result}")
+        logger.info(f"Video T2V generado: {video_url}")
+        return {"success": True, "video_url": video_url, "model": model}
+
+    except Exception as e:
+        logger.error(f"Error T2V con {model}: {e}")
+        if model == "kling":
+            logger.info("Fallback T2V → wan...")
+            return generate_video_from_text(prompt, aspect_ratio, duration, model="wan")
+        if model == "wan":
+            logger.info("Fallback T2V → ltx...")
+            return generate_video_from_text(prompt, aspect_ratio, duration, model="ltx")
+        return {"error": str(e)}
+
+
+# ── Video generation (image-to-video) ────────────────────────────────────────
 
 def generate_video(image_url: str, motion_prompt: str,
                    duration: int = 5, model: str = DEFAULT_VIDEO_MODEL) -> dict:

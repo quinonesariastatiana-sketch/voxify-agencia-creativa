@@ -244,33 +244,32 @@ def _image_format_for_item(item: dict) -> str:
     return 'instagram_post'
 
 
-def _make_image_prompt(item: dict, brand: dict) -> str:
-    """Build an English visual description for fal.ai FLUX Schnell."""
+def _scene_base(brand: dict) -> str:
+    """English scene description based on brand industry."""
     industry = brand.get('industry', '').lower()
-    geo      = brand.get('geography', 'United States')
-    ctype    = item.get('content_type', 'post')
-    topic    = item.get('topic', '')
-
     if any(k in industry for k in ('café', 'coffee', 'alimento', 'food', 'bebida')):
-        base = "artisan coffee shop, specialty coffee bar, warm wood interior, barista at work"
-    elif any(k in industry for k in ('saas', 'tech', 'software', 'marketing')):
-        base = "modern co-working space, professional latina woman at laptop, digital agency office"
-    elif any(k in industry for k in ('moda', 'fashion', 'ropa', 'boutique', 'lujo', 'luxury')):
-        base = "elegant fashion boutique, stylish clothing display, latina fashion model"
-    elif any(k in industry for k in ('salud', 'health', 'fitness', 'wellness')):
-        base = "bright wellness studio, healthy lifestyle, professional trainer, modern gym"
-    elif any(k in industry for k in ('real estate', 'realtor', 'inmobil')):
-        base = "modern home interior, professional latina realtor showing property"
-    elif any(k in industry for k in ('restaur', 'gastro')):
-        base = "upscale restaurant kitchen, chef plating beautiful dish, warm dining atmosphere"
-    else:
-        base = f"small business owner, professional setting, latina entrepreneur, {industry or 'business'}"
+        return "artisan coffee shop, specialty coffee bar, warm wood interior, barista at work"
+    if any(k in industry for k in ('saas', 'tech', 'software', 'marketing')):
+        return "modern co-working space, professional latina woman at laptop, digital agency office"
+    if any(k in industry for k in ('moda', 'fashion', 'ropa', 'boutique', 'lujo', 'luxury')):
+        return "elegant fashion boutique, stylish clothing display, latina fashion model"
+    if any(k in industry for k in ('salud', 'health', 'fitness', 'wellness')):
+        return "bright wellness studio, healthy lifestyle, professional trainer, modern gym"
+    if any(k in industry for k in ('real estate', 'realtor', 'inmobil')):
+        return "modern home interior, professional latina realtor showing property"
+    if any(k in industry for k in ('restaur', 'gastro')):
+        return "upscale restaurant kitchen, chef plating beautiful dish, warm dining atmosphere"
+    return f"small business owner, professional setting, latina entrepreneur, {industry or 'business'}"
 
-    if ctype == 'reel':
-        framing = "cinematic action shot, dynamic moment, vertical framing"
-    elif ctype == 'story':
-        framing = "lifestyle candid moment, authentic scene, vertical portrait"
-    elif ctype == 'carousel':
+
+def _make_image_prompt(item: dict, brand: dict) -> str:
+    """English visual prompt for fal.ai FLUX Schnell (posts and carousels)."""
+    geo   = brand.get('geography', 'United States')
+    ctype = item.get('content_type', 'post')
+    topic = item.get('topic', '')
+    base  = _scene_base(brand)
+
+    if ctype == 'carousel':
         framing = "editorial clean composition, professional product or service shot"
     else:
         framing = "editorial lifestyle photo, clean composition, magazine quality"
@@ -279,35 +278,61 @@ def _make_image_prompt(item: dict, brand: dict) -> str:
     return f"{base}{topic_str}, {geo}, {framing}"
 
 
+def _make_video_prompt(item: dict, brand: dict) -> str:
+    """English text-to-video prompt for fal.ai Kling (reels and stories)."""
+    geo   = brand.get('geography', 'United States')
+    ctype = item.get('content_type', 'reel')
+    topic = item.get('topic', '')
+    base  = _scene_base(brand)
+
+    if ctype == 'story':
+        motion = "smooth vertical pan, warm golden hour lighting, authentic lifestyle moment, 9:16 vertical"
+    else:  # reel
+        motion = "dynamic camera movement, energetic viral social media style, engaging opening shot, 9:16 vertical"
+
+    topic_str = f", {topic}" if topic else ""
+    return f"{base}{topic_str}, {geo}, {motion}, cinematic quality, no text overlays"
+
+
 def generate_grid_images(grid: list, brand: dict) -> list:
     """
-    Adds image_url to each grid item via fal.ai FLUX (parallel, max 5 workers).
-    Returns the same grid with image_url populated where generation succeeded.
+    Generates media for each grid item in parallel (max 5 workers):
+    - posts, carousels → FLUX image (image_url)
+    - reels, stories   → Kling text-to-video (video_url)
     """
     from config.settings import IMAGES_ENABLED
     if not IMAGES_ENABLED:
-        logger.warning("[agent] FAL_API_KEY not set — skipping image generation")
+        logger.warning("[agent] FAL_API_KEY not set — skipping media generation")
         return grid
 
-    from tools.media_generator import generate_image
+    from tools.media_generator import generate_image, generate_video_from_text
     from concurrent.futures import ThreadPoolExecutor, as_completed
 
     def _gen_one(idx: int, item: dict):
-        prompt = _make_image_prompt(item, brand)
-        fmt    = _image_format_for_item(item)
-        result = generate_image(prompt, fmt)
-        return idx, result.get('image_url', '')
+        ctype = item.get('content_type', 'post')
+        if ctype in ('reel', 'story'):
+            prompt = _make_video_prompt(item, brand)
+            result = generate_video_from_text(prompt, aspect_ratio="9:16", duration=5)
+            return idx, 'video', result.get('video_url', '')
+        else:
+            prompt = _make_image_prompt(item, brand)
+            fmt    = _image_format_for_item(item)
+            result = generate_image(prompt, fmt)
+            return idx, 'image', result.get('image_url', '')
 
     enriched = [dict(item) for item in grid]
     with ThreadPoolExecutor(max_workers=5) as ex:
         futures = {ex.submit(_gen_one, i, item): i for i, item in enumerate(enriched)}
         for fut in as_completed(futures):
             try:
-                i, url = fut.result()
+                idx, media_type, url = fut.result()
                 if url:
-                    enriched[i]['image_url'] = url
+                    if media_type == 'video':
+                        enriched[idx]['video_url'] = url
+                    else:
+                        enriched[idx]['image_url'] = url
             except Exception as e:
-                logger.warning(f"[agent] image gen slot error: {e}")
+                logger.warning(f"[agent] media gen error: {e}")
 
     return enriched
 
