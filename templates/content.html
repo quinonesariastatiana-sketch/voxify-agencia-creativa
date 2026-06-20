@@ -190,6 +190,13 @@ textarea{resize:vertical;min-height:80px}
         <label>TEMA (opcional)</label>
         <input id="grid-topic" placeholder="ej: temporada navideña...">
       </div>
+      <div class="field">
+        <label>IMÁGENES IA</label>
+        <label style="display:flex;align-items:center;gap:8px;padding-top:6px;font-size:12px;font-weight:400;color:var(--text);cursor:pointer">
+          <input type="checkbox" id="grid-images" style="accent-color:#635BFF">
+          🖼 Generar fotos con fal.ai <span style="color:var(--muted)">(+30s)</span>
+        </label>
+      </div>
     </div>
     <div style="background:#1a1a2e;border-radius:10px;padding:14px;margin:4px 0 14px">
       <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:10px">CONTENIDO POR SEMANA</div>
@@ -393,8 +400,9 @@ async function generateGrid() {
   const brandId = document.getElementById('grid-brand').value;
   if (!brandId) { toast('Selecciona una marca', true); return; }
   const btn = document.getElementById('grid-gen-btn');
+  const genImages = document.getElementById('grid-images').checked;
   btn.disabled = true;
-  btn.textContent = 'Generando... (puede tardar 30s)';
+  btn.textContent = genImages ? 'Generando + fotos... (puede tardar 60s)' : 'Generando... (puede tardar 30s)';
 
   const platforms = [];
   if (document.getElementById('grid-ig').checked) platforms.push('instagram');
@@ -402,14 +410,15 @@ async function generateGrid() {
   if (!platforms.length) platforms.push('instagram');
 
   const payload = {
-    weeks:          parseInt(document.getElementById('grid-weeks').value),
-    post_count:     parseInt(document.getElementById('grid-posts').value),
-    reel_count:     parseInt(document.getElementById('grid-reels').value),
-    story_count:    parseInt(document.getElementById('grid-stories').value),
-    carousel_count: parseInt(document.getElementById('grid-carousels').value),
+    weeks:           parseInt(document.getElementById('grid-weeks').value),
+    post_count:      parseInt(document.getElementById('grid-posts').value),
+    reel_count:      parseInt(document.getElementById('grid-reels').value),
+    story_count:     parseInt(document.getElementById('grid-stories').value),
+    carousel_count:  parseInt(document.getElementById('grid-carousels').value),
     platforms,
-    topic: document.getElementById('grid-topic').value,
-    save: false,
+    topic:           document.getElementById('grid-topic').value,
+    generate_images: genImages,
+    save:            false,
   };
 
   try {
@@ -440,14 +449,17 @@ async function generateGrid() {
 function renderGridPreview(grid) {
   const typeColors = {post:'#a5b4fc',reel:'#f87171',story:'#f59e0b',carousel:'#06d6a0'};
   const html = grid.map(item => `
-    <div style="background:rgba(255,255,255,.04);border-radius:8px;padding:10px;margin-bottom:6px;border-left:3px solid ${typeColors[item.content_type]||'#635BFF'}">
-      <div style="display:flex;gap:6px;align-items:center;margin-bottom:4px">
-        <span style="font-size:10px;font-weight:700;color:${typeColors[item.content_type]||'#635BFF'}">${typeLabel(item.content_type).toUpperCase()}</span>
-        <span style="font-size:10px;color:var(--muted)">${item.day||''} ${item.time||''} · ${item.platform||''}</span>
-        ${item.hook ? `<span style="font-size:10px;color:#f87171">Hook: "${item.hook}"</span>` : ''}
+    <div style="background:rgba(255,255,255,.04);border-radius:8px;padding:10px;margin-bottom:6px;border-left:3px solid ${typeColors[item.content_type]||'#635BFF'};display:flex;gap:10px">
+      ${item.image_url ? `<img src="${item.image_url}" style="width:60px;height:60px;object-fit:cover;border-radius:6px;flex-shrink:0" onerror="this.style.display='none'">` : ''}
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;gap:6px;align-items:center;margin-bottom:4px;flex-wrap:wrap">
+          <span style="font-size:10px;font-weight:700;color:${typeColors[item.content_type]||'#635BFF'}">${typeLabel(item.content_type).toUpperCase()}</span>
+          <span style="font-size:10px;color:var(--muted)">${item.day||''} ${item.time||''} · ${item.platform||''}</span>
+          ${item.hook ? `<span style="font-size:10px;color:#f87171">Hook: "${item.hook}"</span>` : ''}
+        </div>
+        <div style="font-size:12px;color:rgba(255,255,255,.8);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${escHtml(item.caption||'')}</div>
+        ${(item.hashtags||[]).length ? `<div style="font-size:10px;color:#a5b4fc;margin-top:4px">${item.hashtags.slice(0,4).join(' ')}</div>` : ''}
       </div>
-      <div style="font-size:12px;color:rgba(255,255,255,.8);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${escHtml(item.caption||'')}</div>
-      ${(item.hashtags||[]).length ? `<div style="font-size:10px;color:#a5b4fc;margin-top:4px">${item.hashtags.slice(0,4).join(' ')}</div>` : ''}
     </div>`).join('');
   document.getElementById('grid-preview-items').innerHTML = html;
   document.getElementById('grid-preview').style.display = 'block';
@@ -455,37 +467,23 @@ function renderGridPreview(grid) {
 
 async function saveGrid() {
   const brandId = document.getElementById('grid-brand').value;
+  if (!lastGrid.length) { toast('Genera la parrilla primero', true); return; }
   const btn = document.getElementById('grid-save-btn');
   btn.disabled = true;
   btn.textContent = 'Guardando...';
 
-  const platforms = [];
-  if (document.getElementById('grid-ig').checked) platforms.push('instagram');
-  if (document.getElementById('grid-fb').checked) platforms.push('facebook');
-
-  const payload = {
-    weeks:          parseInt(document.getElementById('grid-weeks').value),
-    post_count:     parseInt(document.getElementById('grid-posts').value),
-    reel_count:     parseInt(document.getElementById('grid-reels').value),
-    story_count:    parseInt(document.getElementById('grid-stories').value),
-    carousel_count: parseInt(document.getElementById('grid-carousels').value),
-    platforms,
-    topic: document.getElementById('grid-topic').value,
-    save: true,
-  };
-
   try {
-    const r = await fetch(`/api/generate-grid/${brandId}`, {
+    const r = await fetch('/api/posts/bulk', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(payload),
+      body: JSON.stringify({brand_id: brandId, items: lastGrid}),
     });
     const d = await r.json();
     if (d.success) {
-      toast(`✓ ${d.saved_ids?.length || d.total} posts guardados`);
+      toast(`✓ ${d.total} posts guardados`);
       closeGridModal();
       loadPosts();
     } else {
-      toast('Error guardando', true);
+      toast('Error guardando: ' + d.error, true);
       btn.disabled = false;
       btn.textContent = '💾 Guardar todos';
     }

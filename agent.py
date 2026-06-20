@@ -232,6 +232,86 @@ Responde SOLO JSON:
     return _safe_parse(raw)
 
 
+# ── Image generation helpers ──────────────────────────────────────────────────
+
+def _image_format_for_item(item: dict) -> str:
+    if item.get('content_type') == 'story':
+        return 'instagram_story'
+    if item.get('platform') == 'facebook':
+        return 'facebook_post'
+    if item.get('platform') == 'linkedin':
+        return 'linkedin_post'
+    return 'instagram_post'
+
+
+def _make_image_prompt(item: dict, brand: dict) -> str:
+    """Build an English visual description for fal.ai FLUX Schnell."""
+    industry = brand.get('industry', '').lower()
+    geo      = brand.get('geography', 'United States')
+    ctype    = item.get('content_type', 'post')
+    topic    = item.get('topic', '')
+
+    if any(k in industry for k in ('café', 'coffee', 'alimento', 'food', 'bebida')):
+        base = "artisan coffee shop, specialty coffee bar, warm wood interior, barista at work"
+    elif any(k in industry for k in ('saas', 'tech', 'software', 'marketing')):
+        base = "modern co-working space, professional latina woman at laptop, digital agency office"
+    elif any(k in industry for k in ('moda', 'fashion', 'ropa', 'boutique', 'lujo', 'luxury')):
+        base = "elegant fashion boutique, stylish clothing display, latina fashion model"
+    elif any(k in industry for k in ('salud', 'health', 'fitness', 'wellness')):
+        base = "bright wellness studio, healthy lifestyle, professional trainer, modern gym"
+    elif any(k in industry for k in ('real estate', 'realtor', 'inmobil')):
+        base = "modern home interior, professional latina realtor showing property"
+    elif any(k in industry for k in ('restaur', 'gastro')):
+        base = "upscale restaurant kitchen, chef plating beautiful dish, warm dining atmosphere"
+    else:
+        base = f"small business owner, professional setting, latina entrepreneur, {industry or 'business'}"
+
+    if ctype == 'reel':
+        framing = "cinematic action shot, dynamic moment, vertical framing"
+    elif ctype == 'story':
+        framing = "lifestyle candid moment, authentic scene, vertical portrait"
+    elif ctype == 'carousel':
+        framing = "editorial clean composition, professional product or service shot"
+    else:
+        framing = "editorial lifestyle photo, clean composition, magazine quality"
+
+    topic_str = f", {topic}" if topic else ""
+    return f"{base}{topic_str}, {geo}, {framing}"
+
+
+def generate_grid_images(grid: list, brand: dict) -> list:
+    """
+    Adds image_url to each grid item via fal.ai FLUX (parallel, max 5 workers).
+    Returns the same grid with image_url populated where generation succeeded.
+    """
+    from config.settings import IMAGES_ENABLED
+    if not IMAGES_ENABLED:
+        logger.warning("[agent] FAL_API_KEY not set — skipping image generation")
+        return grid
+
+    from tools.media_generator import generate_image
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    def _gen_one(idx: int, item: dict):
+        prompt = _make_image_prompt(item, brand)
+        fmt    = _image_format_for_item(item)
+        result = generate_image(prompt, fmt)
+        return idx, result.get('image_url', '')
+
+    enriched = [dict(item) for item in grid]
+    with ThreadPoolExecutor(max_workers=5) as ex:
+        futures = {ex.submit(_gen_one, i, item): i for i, item in enumerate(enriched)}
+        for fut in as_completed(futures):
+            try:
+                i, url = fut.result()
+                if url:
+                    enriched[i]['image_url'] = url
+            except Exception as e:
+                logger.warning(f"[agent] image gen slot error: {e}")
+
+    return enriched
+
+
 def generate_grid(brand: dict, weeks: int = 1, post_count: int = 3,
                   reel_count: int = 2, story_count: int = 5,
                   carousel_count: int = 1, platforms=None,

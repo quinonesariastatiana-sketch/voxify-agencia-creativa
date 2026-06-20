@@ -338,16 +338,20 @@ def api_generate_grid(brand_id):
 
     result = agent.generate_grid(brand, **config)
 
+    if data.get('generate_images') and result.get('grid'):
+        result['grid'] = agent.generate_grid_images(result['grid'], brand)
+
     if data.get('save') and result.get('grid'):
         import json as _json
         saved_ids = []
         for item in result['grid']:
             extra = {k: v for k, v in item.items()
-                     if k not in ('caption', 'platform', 'content_type',
+                     if k not in ('caption', 'image_url', 'platform', 'content_type',
                                   'suggested_day', 'suggested_time', 'hashtags')}
             post_id = db.create_post(
                 brand_id,
                 item.get('caption', ''),
+                image_url     = item.get('image_url', ''),
                 platform      = item.get('platform', 'instagram'),
                 content_type  = item.get('content_type', 'post'),
                 suggested_day = item.get('day', ''),
@@ -358,6 +362,37 @@ def api_generate_grid(brand_id):
         result['saved_ids'] = saved_ids
 
     return jsonify(result)
+
+
+@app.route('/api/posts/bulk', methods=['POST'])
+def api_bulk_save_posts():
+    import json as _json
+    data     = request.get_json(force=True) or {}
+    brand_id = data.get('brand_id', '')
+    items    = data.get('items', [])
+
+    brand = db.get_brand(brand_id)
+    if not brand:
+        return jsonify({'success': False, 'error': 'Brand not found'}), 404
+
+    saved_ids = []
+    for item in items:
+        extra = {k: v for k, v in item.items()
+                 if k not in ('caption', 'image_url', 'platform', 'content_type',
+                              'day', 'time', 'hashtags')}
+        post_id = db.create_post(
+            brand_id,
+            item.get('caption', ''),
+            image_url     = item.get('image_url', ''),
+            platform      = item.get('platform', 'instagram'),
+            content_type  = item.get('content_type', 'post'),
+            suggested_day = item.get('day', ''),
+            suggested_time= item.get('time', ''),
+            extra_json    = _json.dumps(extra),
+        )
+        saved_ids.append(post_id)
+
+    return jsonify({'success': True, 'saved_ids': saved_ids, 'total': len(saved_ids)})
 
 
 # ── API: Schedule Config ───────────────────────────────────────────────────────
