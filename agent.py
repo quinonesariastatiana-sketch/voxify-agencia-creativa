@@ -5,7 +5,7 @@ KPIs grounded in real Meta data. No SEO/SEM/Google Ads in any prompt.
 import json
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import anthropic
 from dotenv import load_dotenv
@@ -439,9 +439,55 @@ Responde SOLO JSON:
         except Exception as e:
             errors.append(f"carousels:{e}")
 
+    _assign_real_dates(grid)
+
     return {
         "success": len(grid) > 0,
         "grid":    grid,
         "total":   len(grid),
         "errors":  errors,
     }
+
+
+_DAY_ES = {
+    "lunes": 0, "martes": 1, "miércoles": 2, "miercoles": 2,
+    "jueves": 3, "viernes": 4, "sábado": 5, "sabado": 5, "domingo": 6,
+}
+
+
+def _assign_real_dates(grid: list):
+    """
+    Replace Spanish day names with real dates starting from tomorrow.
+    Sets item['scheduled_for'] = 'YYYY-MM-DD HH:MM:SS' and keeps item['day'] as the name.
+    Items are sorted by scheduled_for so the grid is in chronological order.
+    """
+    tomorrow = datetime.utcnow().date() + timedelta(days=1)
+    # Track next available slot per weekday to avoid collisions
+    next_occurrence: dict = {}
+
+    def _next_date_for(day_name: str, time_str: str) -> str:
+        key = day_name.lower()
+        target_wd = _DAY_ES.get(key)
+        if target_wd is None:
+            # fallback: sequential from tomorrow
+            base = next_occurrence.get('__seq__', tomorrow)
+            next_occurrence['__seq__'] = base + timedelta(days=1)
+            return f"{base} {time_str}:00"
+
+        slot_key = f"{key}_{time_str}"
+        last = next_occurrence.get(slot_key)
+        if last is None:
+            # First occurrence: find next matching weekday from tomorrow
+            delta = (target_wd - tomorrow.weekday()) % 7
+            d = tomorrow + timedelta(days=delta)
+        else:
+            d = last + timedelta(weeks=1)
+        next_occurrence[slot_key] = d
+        return f"{d} {time_str}:00"
+
+    for item in grid:
+        day_name = item.get('day', '')
+        time_str = item.get('time', '10:00')
+        item['scheduled_for'] = _next_date_for(day_name, time_str)
+
+    grid.sort(key=lambda x: x.get('scheduled_for', ''))

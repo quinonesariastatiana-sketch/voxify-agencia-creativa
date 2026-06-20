@@ -267,18 +267,34 @@ function renderTable() {
   <tr id="row-${p.id}">
     <td style="color:var(--muted);font-size:12px">#${p.id}</td>
     <td><span style="color:${p.brand_color||'#635BFF'};font-weight:700;font-size:13px">${p.brand_name||p.brand_id}</span></td>
-    <td class="caption-cell">
-      <div class="caption-text" id="cap-${p.id}">${escHtml(p.caption)}</div>
-      <div class="caption-expand" onclick="toggleCaption(${p.id})">Ver más</div>
+    <td class="caption-cell" style="display:flex;gap:8px;align-items:flex-start">
+      ${p.video_url
+        ? `<video src="${p.video_url}" style="width:44px;height:44px;object-fit:cover;border-radius:5px;flex-shrink:0" autoplay muted loop playsinline></video>`
+        : p.image_url
+          ? `<img src="${p.image_url}" style="width:44px;height:44px;object-fit:cover;border-radius:5px;flex-shrink:0">`
+          : ''}
+      <div style="flex:1;min-width:0">
+        <div class="caption-text" id="cap-${p.id}">${escHtml(p.caption)}</div>
+        <div class="caption-expand" onclick="toggleCaption(${p.id})">Ver más</div>
+      </div>
     </td>
     <td><span class="type-badge type-${p.content_type||'post'}">${typeLabel(p.content_type)}</span></td>
     <td><span class="platform-badge">${p.platform}</span></td>
-    <td style="color:var(--muted);font-size:11px;white-space:nowrap">${p.suggested_day ? p.suggested_day + ' ' + (p.suggested_time||'') : (p.posted_at||p.created_at||'').slice(0,16)}</td>
+    <td style="color:var(--muted);font-size:11px;white-space:nowrap">${fmtDate(p)}</td>
     <td><span class="status-badge s-${p.status}">${statusLabel(p.status)}</span></td>
     <td class="actions">${actionsFor(p)}</td>
   </tr>`).join('');
 }
 
+function fmtDate(p) {
+  // prefer scheduled_for (real date), then day+time label, then created_at
+  if (p.scheduled_for) {
+    const d = new Date(p.scheduled_for.replace(' ','T') + 'Z');
+    return d.toLocaleDateString('es', {weekday:'short',month:'short',day:'numeric'}) + ' ' + d.toLocaleTimeString('es', {hour:'2-digit',minute:'2-digit'});
+  }
+  if (p.suggested_day) return p.suggested_day + ' ' + (p.suggested_time||'');
+  return (p.posted_at||p.created_at||'').slice(0,16);
+}
 function escHtml(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>'); }
 function statusLabel(s) { return {pending:'Pendiente',approved:'Aprobado',posted:'Publicado',rejected:'Rechazado',failed:'Fallido',deleted:'Eliminado'}[s]||s; }
 function typeLabel(t) { return {post:'📸 Post',reel:'🎬 Reel',story:'⭕ Story',carousel:'🎠 Carrusel'}[t||'post']||t||'Post'; }
@@ -292,6 +308,9 @@ function actionsFor(p) {
     acts.push(`<button class="act-btn act-publish" onclick="publishPost(${p.id})">↑ Publicar</button>`);
   }
   if (!['deleted','posted'].includes(p.status)) {
+    if (!p.image_url && !p.video_url) {
+      acts.push(`<button class="act-btn" style="background:rgba(99,91,255,.12);color:#a5b4fc" id="media-btn-${p.id}" onclick="generateMedia(${p.id},this)">${['reel','story'].includes(p.content_type) ? '🎬' : '🖼'} Media</button>`);
+    }
     acts.push(`<button class="act-btn act-delete" onclick="deletePost(${p.id})">🗑</button>`);
   }
   return acts.join('');
@@ -326,6 +345,24 @@ async function publishPost(id) {
   const d = await r.json();
   if (d.success) { toast('✓ Publicado en Meta'); loadPosts(); }
   else toast('Error: ' + (d.errors||[]).join(', '), true);
+}
+
+async function generateMedia(id, btn) {
+  if (btn) { btn.disabled = true; btn.textContent = '⏳...'; }
+  try {
+    const r = await fetch(`/api/posts/${id}/generate-media`, {method:'POST'});
+    const d = await r.json();
+    if (d.success) {
+      toast(`✓ Media generada`);
+      loadPosts();
+    } else {
+      toast('Error: ' + d.error, true);
+      if (btn) { btn.disabled = false; btn.textContent = btn.textContent.replace('⏳...', btn.dataset.label || '🖼 Media'); }
+    }
+  } catch(e) {
+    toast('Error: ' + e.message, true);
+    if (btn) { btn.disabled = false; }
+  }
 }
 
 async function deletePost(id) {
@@ -459,7 +496,7 @@ function renderGridPreview(grid) {
       <div style="flex:1;min-width:0">
         <div style="display:flex;gap:6px;align-items:center;margin-bottom:4px;flex-wrap:wrap">
           <span style="font-size:10px;font-weight:700;color:${typeColors[item.content_type]||'#635BFF'}">${typeLabel(item.content_type).toUpperCase()}</span>
-          <span style="font-size:10px;color:var(--muted)">${item.day||''} ${item.time||''} · ${item.platform||''}</span>
+          <span style="font-size:10px;color:var(--muted)">${item.scheduled_for ? item.scheduled_for.slice(0,16) : ((item.day||'') + ' ' + (item.time||''))} · ${item.platform||''}</span>
           ${item.hook ? `<span style="font-size:10px;color:#f87171">Hook: "${item.hook}"</span>` : ''}
         </div>
         <div style="font-size:12px;color:rgba(255,255,255,.8);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${escHtml(item.caption||'')}</div>

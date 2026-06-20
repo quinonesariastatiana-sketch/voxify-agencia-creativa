@@ -223,6 +223,57 @@ def api_publish_post(post_id):
     return jsonify(result)
 
 
+@app.route('/api/posts/<int:post_id>/generate-media', methods=['POST'])
+def api_generate_post_media(post_id):
+    import json as _json
+    post = db.get_post(post_id)
+    if not post:
+        return jsonify({'success': False, 'error': 'Post not found'}), 404
+    brand = db.get_brand(post['brand_id'])
+    if not brand:
+        return jsonify({'success': False, 'error': 'Brand not found'}), 404
+
+    from config.settings import IMAGES_ENABLED
+    if not IMAGES_ENABLED:
+        return jsonify({'success': False, 'error': 'FAL_API_KEY no configurado'}), 400
+
+    # Build item compatible with agent prompt helpers
+    extra = {}
+    try:
+        extra = _json.loads(post.get('extra_json') or '{}')
+    except Exception:
+        pass
+
+    item = {
+        'content_type': post.get('content_type', 'post'),
+        'platform':     post.get('platform', 'instagram'),
+        'topic':        extra.get('topic', post.get('caption', '')[:60]),
+        'caption':      post.get('caption', ''),
+    }
+
+    content_type = item['content_type']
+    try:
+        if content_type in ('reel', 'story'):
+            from tools.media_generator import generate_video_from_text
+            prompt = agent._make_video_prompt(item, brand)
+            result = generate_video_from_text(prompt, aspect_ratio="9:16", duration=5)
+            if result.get('video_url'):
+                db.update_post(post_id, video_url=result['video_url'])
+                return jsonify({'success': True, 'video_url': result['video_url']})
+        else:
+            from tools.media_generator import generate_image
+            prompt = agent._make_image_prompt(item, brand)
+            fmt    = agent._image_format_for_item(item)
+            result = generate_image(prompt, fmt)
+            if result.get('image_url'):
+                db.update_post(post_id, image_url=result['image_url'])
+                return jsonify({'success': True, 'image_url': result['image_url']})
+        return jsonify({'success': False, 'error': result.get('error', 'Sin URL en respuesta')}), 500
+    except Exception as e:
+        import traceback as _tb
+        return jsonify({'success': False, 'error': str(e), 'trace': _tb.format_exc()[-1000:]}), 500
+
+
 @app.route('/api/posts/<int:post_id>', methods=['DELETE'])
 def api_delete_post(post_id):
     db.update_post(post_id, status='deleted')
@@ -347,17 +398,19 @@ def api_generate_grid(brand_id):
         for item in result['grid']:
             extra = {k: v for k, v in item.items()
                      if k not in ('caption', 'image_url', 'video_url', 'platform',
-                                  'content_type', 'suggested_day', 'suggested_time', 'hashtags')}
+                                  'content_type', 'suggested_day', 'suggested_time',
+                                  'hashtags', 'scheduled_for')}
             post_id = db.create_post(
                 brand_id,
                 item.get('caption', ''),
-                image_url     = item.get('image_url', ''),
-                video_url     = item.get('video_url', ''),
-                platform      = item.get('platform', 'instagram'),
-                content_type  = item.get('content_type', 'post'),
-                suggested_day = item.get('day', ''),
-                suggested_time= item.get('time', ''),
-                extra_json    = _json.dumps(extra),
+                image_url      = item.get('image_url', ''),
+                video_url      = item.get('video_url', ''),
+                platform       = item.get('platform', 'instagram'),
+                scheduled_for  = item.get('scheduled_for'),
+                content_type   = item.get('content_type', 'post'),
+                suggested_day  = item.get('day', ''),
+                suggested_time = item.get('time', ''),
+                extra_json     = _json.dumps(extra),
             )
             saved_ids.append(post_id)
         result['saved_ids'] = saved_ids
@@ -380,17 +433,18 @@ def api_bulk_save_posts():
     for item in items:
         extra = {k: v for k, v in item.items()
                  if k not in ('caption', 'image_url', 'video_url', 'platform',
-                              'content_type', 'day', 'time', 'hashtags')}
+                              'content_type', 'day', 'time', 'hashtags', 'scheduled_for')}
         post_id = db.create_post(
             brand_id,
             item.get('caption', ''),
-            image_url     = item.get('image_url', ''),
-            video_url     = item.get('video_url', ''),
-            platform      = item.get('platform', 'instagram'),
-            content_type  = item.get('content_type', 'post'),
-            suggested_day = item.get('day', ''),
-            suggested_time= item.get('time', ''),
-            extra_json    = _json.dumps(extra),
+            image_url      = item.get('image_url', ''),
+            video_url      = item.get('video_url', ''),
+            platform       = item.get('platform', 'instagram'),
+            scheduled_for  = item.get('scheduled_for'),
+            content_type   = item.get('content_type', 'post'),
+            suggested_day  = item.get('day', ''),
+            suggested_time = item.get('time', ''),
+            extra_json     = _json.dumps(extra),
         )
         saved_ids.append(post_id)
 
