@@ -1,10 +1,11 @@
 """
-OpenMontage Bridge — direct tool integration for Voxify Agent.
+OpenMontage Bridge — Voxify Agent media pipeline (no submodule dependency).
 
 Full Reel pipeline:
-  FLUX Pro image → Kling v3 video → ElevenLabs narration
+  FLUX Pro v1.1 image → Kling v3 video → ElevenLabs narration
   → SRT subtitles → Stable Audio music → FFmpeg compose → final MP4
 
+All API calls are direct HTTP (requests) — no OpenMontage submodule needed.
 All steps are individually resilient: if voice/music/subtitles fail,
 the video still completes without them.
 """
@@ -14,8 +15,8 @@ from __future__ import annotations
 import json
 import os
 import re
+import requests
 import subprocess
-import sys
 import time
 import uuid
 import logging
@@ -26,24 +27,14 @@ logger = logging.getLogger(__name__)
 
 from platform_config import video_config_for
 
-# ── OpenMontage path ──────────────────────────────────────────────────────────
-
 _BRIDGE_DIR = Path(__file__).parent
-_OM_PATH    = str(_BRIDGE_DIR / "openmontage")
-
-if _OM_PATH not in sys.path:
-    sys.path.insert(0, _OM_PATH)
 
 
-def _sync_fal_env():
-    fal_key = os.environ.get("FAL_KEY") or os.environ.get("FAL_AI_API_KEY")
-    fal_api = os.environ.get("FAL_API_KEY")
-    if fal_api and not fal_key:
-        os.environ["FAL_KEY"] = fal_api
-    elif fal_key and not os.environ.get("FAL_API_KEY"):
-        os.environ["FAL_API_KEY"] = fal_key
-
-_sync_fal_env()
+def _fal_key() -> str:
+    return (os.environ.get("FAL_KEY")
+            or os.environ.get("FAL_API_KEY")
+            or os.environ.get("FAL_AI_API_KEY")
+            or "")
 
 # ── Storage ───────────────────────────────────────────────────────────────────
 
@@ -125,57 +116,80 @@ def _motion_prompt(brand: dict, content_type: str) -> str:
         "social media viral quality. No text. No logos. 9:16 vertical."
     )
 
-# ── Step 1: FLUX Pro image ────────────────────────────────────────────────────
+# ── Step 1: FLUX Pro v1.1 image (direct HTTP) ─────────────────────────────────
 
 def generate_image(brand: dict, content_type: str = "reel",
                    caption: str = "", custom_prompt: str = "") -> dict:
-    try:
-        from tools.graphics.flux_image import FluxImage
-    except ImportError as e:
-        return {"success": False, "error": f"FluxImage import failed: {e}"}
+    fal = _fal_key()
+    if not fal:
+        return {"success": False, "error": "FAL_KEY not set"}
 
     prompt   = custom_prompt or _image_prompt(brand, content_type, caption)
     img_dir  = _storage_dir("images")
     img_name = f"{brand.get('id','brand')}_{uuid.uuid4().hex[:8]}.png"
     img_path = str(img_dir / img_name)
 
-    result = FluxImage().execute({
-        "prompt":               prompt,
-        "model":                "flux-pro/v1.1",
-        "width":                1080,
-        "height":               1920,
-        "num_inference_steps":  28,
-        "guidance_scale":       3.5,
-        "output_path":          img_path,
-    })
-    if not result.success:
-        return {"success": False, "error": result.error}
+    try:
+        resp = requests.post(
+            "https://fal.run/fal-ai/flux-pro/v1.1",
+            headers={"Authorization": f"Key {fal}",
+                     "Content-Type": "application/json"},
+            json={
+                "prompt":              prompt,
+                "width":               1080,
+                "height":              1920,
+                "num_inference_steps": 28,
+                "guidance_scale":      3.5,
+                "num_images":          1,
+                "output_format":       "png",
+            },
+            timeout=120,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        images = data.get("images") or []
+        if not images:
+            return {"success": False, "error": f"No images in response: {str(data)[:200]}"}
+        img_url_cdn = images[0].get("url") or images[0]
+    except Exception as e:
+        return {"success": False, "error": f"FLUX API error: {e}"}
 
+    # Download image to local storage
+    try:
+        img_resp = requests.get(img_url_cdn, timeout=60)
+        img_resp.raise_for_status()
+        with open(img_path, "wb") as f:
+            f.write(img_resp.content)
+    except Exception as e:
+        return {"success": False, "error": f"Image download failed: {e}"}
+
+    logger.info(f"[bridge] FLUX image → {img_path}")
     return {"success": True, "image_path": img_path,
             "image_url": f"/media/images/{img_name}",
-            "prompt": prompt, "cost_usd": result.cost_usd}
+            "image_url_cdn": img_url_cdn,
+            "prompt": prompt, "cost_usd": 0.05}
 
-# ── Step 2: Kling v3 video ────────────────────────────────────────────────────
+
+# ── Step 2: Kling v3 image-to-video (direct HTTP, queue API) ─────────────────
 
 def _upload_to_fal(local_path: str) -> str | None:
-    fal_key = os.environ.get("FAL_KEY") or os.environ.get("FAL_API_KEY")
-    if not fal_key:
+    """Upload a local file to fal.ai CDN and return the CDN URL."""
+    fal = _fal_key()
+    if not fal:
         return None
     try:
         import fal_client
-        url = fal_client.upload_file(local_path)
-        return url
+        return fal_client.upload_file(local_path)
     except ImportError:
         pass
     except Exception as e:
         logger.warning(f"[bridge] fal_client upload failed: {e}")
 
-    import requests
     try:
         with open(local_path, "rb") as f:
             resp = requests.post(
                 "https://fal.run/files",
-                headers={"Authorization": f"Key {fal_key}"},
+                headers={"Authorization": f"Key {fal}"},
                 files={"file": (Path(local_path).name, f, "image/png")},
                 timeout=60,
             )
@@ -189,34 +203,113 @@ def _upload_to_fal(local_path: str) -> str | None:
 
 def generate_video(brand: dict, image_path: str, content_type: str = "reel",
                    caption: str = "", duration: int = 5) -> dict:
-    try:
-        from tools.video.kling_video import KlingVideo
-    except ImportError as e:
-        return {"success": False, "error": f"KlingVideo import failed: {e}"}
+    """Generate a Kling v3 video from a local image using the fal.ai queue API."""
+    fal = _fal_key()
+    if not fal:
+        return {"success": False, "error": "FAL_KEY not set"}
 
+    # Use CDN URL from the image if available (avoids re-upload)
     image_url = _upload_to_fal(image_path)
     if not image_url:
         return {"success": False, "error": "Image CDN upload failed"}
 
+    headers = {"Authorization": f"Key {fal}",
+               "Content-Type": "application/json"}
+    payload = {
+        "prompt":       _motion_prompt(brand, content_type),
+        "image_url":    image_url,
+        "aspect_ratio": "9:16",
+        "duration":     str(duration),
+    }
+
+    # Submit to queue
+    try:
+        q = requests.post(
+            "https://queue.fal.run/fal-ai/kling-video/v3/standard/image-to-video",
+            headers=headers, json=payload, timeout=30,
+        )
+        q.raise_for_status()
+        queue_data = q.json()
+    except Exception as e:
+        return {"success": False, "error": f"Kling queue submit failed: {e}"}
+
+    request_id  = queue_data.get("request_id", "")
+    status_url  = queue_data.get("status_url") or (
+        f"https://queue.fal.run/fal-ai/kling-video/v3/standard/image-to-video"
+        f"/requests/{request_id}/status"
+    )
+    result_url  = queue_data.get("response_url") or (
+        f"https://queue.fal.run/fal-ai/kling-video/v3/standard/image-to-video"
+        f"/requests/{request_id}"
+    )
+
+    logger.info(f"[bridge] Kling job {request_id} queued — polling...")
+
+    # Poll for completion (up to 10 min)
+    deadline = time.time() + 600
+    while time.time() < deadline:
+        time.sleep(8)
+        try:
+            st = requests.get(status_url, headers=headers, timeout=15)
+            st.raise_for_status()
+            status = st.json().get("status", "").upper()
+            logger.info(f"[bridge] Kling {request_id}: {status}")
+            if status == "COMPLETED":
+                break
+            if status in ("FAILED", "CANCELLED"):
+                return {"success": False,
+                        "error": f"Kling job {status}: {st.json()}"}
+        except Exception as e:
+            logger.warning(f"[bridge] Kling poll error: {e}")
+    else:
+        return {"success": False, "error": "Kling video generation timed out"}
+
+    # Fetch result
+    try:
+        res = requests.get(result_url, headers=headers, timeout=30)
+        res.raise_for_status()
+        res_data = res.json()
+    except Exception as e:
+        return {"success": False, "error": f"Kling result fetch failed: {e}"}
+
+    # Find video URL in response
+    video_cdn = (
+        (res_data.get("video") or {}).get("url")
+        or (res_data.get("output") or {}).get("video", {}).get("url")
+        or ""
+    )
+    if not video_cdn:
+        # Try nested structures
+        for key in ("videos", "output"):
+            v = res_data.get(key)
+            if isinstance(v, list) and v:
+                video_cdn = v[0].get("url", "")
+                break
+            if isinstance(v, dict):
+                video_cdn = v.get("url", "") or v.get("video", {}).get("url", "")
+                if video_cdn:
+                    break
+    if not video_cdn:
+        return {"success": False,
+                "error": f"No video URL in response: {str(res_data)[:300]}"}
+
+    # Download video to local storage
     vid_dir  = _storage_dir("videos")
     vid_name = f"{brand.get('id','brand')}_{uuid.uuid4().hex[:8]}.mp4"
     vid_path = str(vid_dir / vid_name)
+    try:
+        vr = requests.get(video_cdn, timeout=120, stream=True)
+        vr.raise_for_status()
+        with open(vid_path, "wb") as f:
+            for chunk in vr.iter_content(chunk_size=65536):
+                f.write(chunk)
+    except Exception as e:
+        return {"success": False, "error": f"Video download failed: {e}"}
 
-    result = KlingVideo().execute({
-        "prompt":        _motion_prompt(brand, content_type),
-        "operation":     "image_to_video",
-        "model_variant": "v3/standard",
-        "aspect_ratio":  "9:16",
-        "duration":      str(duration),
-        "image_url":     image_url,
-        "output_path":   vid_path,
-    })
-    if not result.success:
-        return {"success": False, "error": result.error}
-
+    logger.info(f"[bridge] Kling video → {vid_path}")
     return {"success": True, "video_path": vid_path,
             "video_url": f"/media/videos/{vid_name}",
-            "cost_usd": result.cost_usd}
+            "cost_usd": 0.28}
 
 # ── Step 3: Narration script (Claude Haiku) ───────────────────────────────────
 
