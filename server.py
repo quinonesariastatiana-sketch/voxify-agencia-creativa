@@ -22,7 +22,6 @@ import agent
 import publisher
 import scheduler as sched
 import meta_insights
-import zeus_telegram_bot
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'voxify-secret-2026')
@@ -30,7 +29,6 @@ app.secret_key = os.environ.get('SECRET_KEY', 'voxify-secret-2026')
 # ── Init ─────────────────────────────────────────────────────────────────────
 db.init_db()
 sched.start()
-zeus_telegram_bot.start_bot_thread()
 
 # ── Health ────────────────────────────────────────────────────────────────────
 
