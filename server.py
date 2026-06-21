@@ -22,6 +22,7 @@ import agent
 import publisher
 import scheduler as sched
 import meta_insights
+import zeus_telegram_bot
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'voxify-secret-2026')
@@ -29,6 +30,7 @@ app.secret_key = os.environ.get('SECRET_KEY', 'voxify-secret-2026')
 # ── Init ─────────────────────────────────────────────────────────────────────
 db.init_db()
 sched.start()
+zeus_telegram_bot.start_bot_thread()
 
 # ── Health ────────────────────────────────────────────────────────────────────
 
@@ -199,8 +201,43 @@ def api_approve_post(post_id):
 
 @app.route('/api/posts/<int:post_id>/reject', methods=['POST'])
 def api_reject_post(post_id):
-    db.update_post(post_id, status='rejected')
+    import json as _json
+    data = request.get_json(force=True) or {}
+    what = data.get('what', '')   # 'copy' | 'image' | 'both'
+    note = data.get('note', '').strip()
+    updates = {'status': 'rejected'}
+    if what or note:
+        post = db.get_post(post_id)
+        extra = {}
+        try:
+            extra = _json.loads(post.get('extra_json') or '{}')
+        except Exception:
+            pass
+        if what:
+            extra['feedback_type'] = what
+        if note:
+            extra['feedback_note'] = note
+        updates['extra_json'] = _json.dumps(extra)
+    db.update_post(post_id, **updates)
     return jsonify({'success': True})
+
+
+def _do_publish_post(post_id: int, post: dict, brand: dict):
+    """Publish one post in a background thread — updates DB when done."""
+    try:
+        result = publisher.publish_post(brand, post)
+        if result['success']:
+            meta_id = ','.join(result['ids'].values())
+            db.update_post(post_id, status='posted', post_id_meta=meta_id,
+                           posted_at=datetime.utcnow().isoformat(), error_msg='')
+            logger.info(f"[publish] post {post_id} → posted ({meta_id})")
+        else:
+            err = '; '.join(result['errors'])
+            db.update_post(post_id, status='failed', error_msg=err)
+            logger.error(f"[publish] post {post_id} failed: {err}")
+    except Exception as e:
+        db.update_post(post_id, status='failed', error_msg=str(e))
+        logger.error(f"[publish] post {post_id} exception: {e}")
 
 
 @app.route('/api/posts/<int:post_id>/publish', methods=['POST'])
@@ -212,20 +249,132 @@ def api_publish_post(post_id):
     if not brand:
         return jsonify({'success': False, 'error': 'Brand not found'}), 404
 
-    result = publisher.publish_post(brand, post)
-    if result['success']:
-        meta_id = ','.join(result['ids'].values())
-        db.update_post(post_id, status='posted', post_id_meta=meta_id,
-                       posted_at=datetime.utcnow().isoformat())
-    else:
-        db.update_post(post_id, status='failed',
-                       error_msg='; '.join(result['errors']))
-    return jsonify(result)
+    # Mark as publishing immediately so the UI stops showing the button
+    db.update_post(post_id, status='publishing')
+
+    import threading
+    t = threading.Thread(target=_do_publish_post, args=(post_id, post, brand), daemon=True)
+    t.start()
+    return jsonify({'success': True, 'queued': True})
+
+
+@app.route('/api/posts/<int:post_id>/status', methods=['GET'])
+def api_post_status(post_id):
+    post = db.get_post(post_id)
+    if not post:
+        return jsonify({'success': False}), 404
+    return jsonify({'status': post.get('status'), 'error_msg': post.get('error_msg', '')})
+
+
+def _do_generate_post_media(post_id: int, post: dict, brand: dict, direction: str = ''):
+    """Core media generation logic for one post. Safe to call in a background thread."""
+    content_type = post.get('content_type', 'post')
+    caption = post.get('caption', '')
+    if direction:
+        caption = f"{caption}\n[Visual direction: {direction}]"
+    geo = brand.get('geography', 'United States')
+    try:
+        scene = agent._caption_to_visual(caption, brand, content_type)
+        if content_type in ('reel', 'story'):
+            from tools.media_generator import generate_video_from_text
+            motion = ("smooth vertical pan, warm golden hour lighting"
+                      if content_type == 'story'
+                      else "dynamic camera movement, energetic viral social media")
+            result = generate_video_from_text(
+                f"{scene}, {geo}, {motion}, 9:16 vertical, cinematic, no text",
+                aspect_ratio="9:16", duration=5
+            )
+            if result.get('video_url'):
+                db.update_post(post_id, video_url=result['video_url'])
+                logger.info(f"[media] video OK → post {post_id}")
+                return {'success': True, 'video_url': result['video_url']}
+        else:
+            from tools.media_generator import generate_image
+            framing = ("editorial clean composition, professional"
+                       if content_type == 'carousel'
+                       else "editorial lifestyle photo, magazine quality")
+            fmt = agent._image_format_for_item({'content_type': content_type,
+                                                'platform': post.get('platform', 'instagram')})
+            result = generate_image(f"{scene}, {geo}, {framing}", fmt)
+            if result.get('image_url'):
+                db.update_post(post_id, image_url=result['image_url'])
+                logger.info(f"[media] image OK → post {post_id}")
+                return {'success': True, 'image_url': result['image_url']}
+        return {'success': False, 'error': result.get('error', 'Sin URL')}
+    except Exception as e:
+        logger.error(f"[media] post {post_id}: {e}")
+        return {'success': False, 'error': str(e)}
+
+
+def _generate_media_background(post_ids: list, brand: dict):
+    """
+    Background thread: generate media for multiple posts in parallel.
+    Uses one batch Haiku call for visual prompts, then fal.ai in a thread pool.
+    """
+    from config.settings import IMAGES_ENABLED
+    if not IMAGES_ENABLED:
+        return
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    posts = [db.get_post(pid) for pid in post_ids]
+    posts = [(pid, p) for pid, p in zip(post_ids, posts) if p]
+    if not posts:
+        return
+
+    # One Haiku call for all visual prompts (reads captions, returns unique scenes)
+    grid_items = [{'caption': p.get('caption', ''), 'content_type': p.get('content_type', 'post')}
+                  for _, p in posts]
+    visual_scenes: dict = {}
+    try:
+        visual_scenes = agent._batch_visual_prompts(grid_items, brand)
+    except Exception as e:
+        logger.warning(f"[media-bg] batch visual prompts: {e}")
+
+    geo = brand.get('geography', 'United States')
+
+    def _gen(idx, post_id, post):
+        content_type = post.get('content_type', 'post')
+        scene = visual_scenes.get(idx) or agent._scene_base(brand)
+        try:
+            if content_type in ('reel', 'story'):
+                from tools.media_generator import generate_video_from_text
+                motion = ("smooth vertical pan, warm golden hour lighting"
+                          if content_type == 'story'
+                          else "dynamic camera movement, energetic viral social media")
+                result = generate_video_from_text(
+                    f"{scene}, {geo}, {motion}, 9:16 vertical, cinematic, no text",
+                    aspect_ratio="9:16", duration=5
+                )
+                if result.get('video_url'):
+                    db.update_post(post_id, video_url=result['video_url'])
+                    logger.info(f"[media-bg] video OK → post {post_id}")
+            else:
+                from tools.media_generator import generate_image
+                framing = ("editorial clean composition, professional"
+                           if content_type == 'carousel'
+                           else "editorial lifestyle photo, magazine quality")
+                fmt = agent._image_format_for_item({'content_type': content_type,
+                                                    'platform': post.get('platform', 'instagram')})
+                result = generate_image(f"{scene}, {geo}, {framing}", fmt)
+                if result.get('image_url'):
+                    db.update_post(post_id, image_url=result['image_url'])
+                    logger.info(f"[media-bg] image OK → post {post_id}")
+        except Exception as e:
+            logger.error(f"[media-bg] post {post_id}: {e}")
+
+    with ThreadPoolExecutor(max_workers=5) as ex:
+        futs = {ex.submit(_gen, i, pid, p): pid for i, (pid, p) in enumerate(posts)}
+        for fut in as_completed(futs):
+            try:
+                fut.result()
+            except Exception:
+                pass
+
+    logger.info(f"[media-bg] done — {len(posts)} posts processed")
 
 
 @app.route('/api/posts/<int:post_id>/generate-media', methods=['POST'])
 def api_generate_post_media(post_id):
-    import json as _json
     post = db.get_post(post_id)
     if not post:
         return jsonify({'success': False, 'error': 'Post not found'}), 404
@@ -237,41 +386,33 @@ def api_generate_post_media(post_id):
     if not IMAGES_ENABLED:
         return jsonify({'success': False, 'error': 'FAL_API_KEY no configurado'}), 400
 
-    # Build item compatible with agent prompt helpers
-    extra = {}
-    try:
-        extra = _json.loads(post.get('extra_json') or '{}')
-    except Exception:
-        pass
+    req_data = request.get_json(force=True) or {}
+    direction = req_data.get('direction', '').strip()
 
-    item = {
-        'content_type': post.get('content_type', 'post'),
-        'platform':     post.get('platform', 'instagram'),
-        'topic':        extra.get('topic', post.get('caption', '')[:60]),
-        'caption':      post.get('caption', ''),
-    }
+    # Always run in background — response is immediate, Railway does the work
+    import threading
+    t = threading.Thread(
+        target=_do_generate_post_media,
+        args=(post_id, post, brand, direction),
+        daemon=True,
+    )
+    t.start()
+    return jsonify({'success': True, 'queued': True})
 
-    content_type = item['content_type']
-    try:
-        if content_type in ('reel', 'story'):
-            from tools.media_generator import generate_video_from_text
-            prompt = agent._make_video_prompt(item, brand)
-            result = generate_video_from_text(prompt, aspect_ratio="9:16", duration=5)
-            if result.get('video_url'):
-                db.update_post(post_id, video_url=result['video_url'])
-                return jsonify({'success': True, 'video_url': result['video_url']})
-        else:
-            from tools.media_generator import generate_image
-            prompt = agent._make_image_prompt(item, brand)
-            fmt    = agent._image_format_for_item(item)
-            result = generate_image(prompt, fmt)
-            if result.get('image_url'):
-                db.update_post(post_id, image_url=result['image_url'])
-                return jsonify({'success': True, 'image_url': result['image_url']})
-        return jsonify({'success': False, 'error': result.get('error', 'Sin URL en respuesta')}), 500
-    except Exception as e:
-        import traceback as _tb
-        return jsonify({'success': False, 'error': str(e), 'trace': _tb.format_exc()[-1000:]}), 500
+
+@app.route('/api/posts/<int:post_id>', methods=['PATCH'])
+def api_update_post(post_id):
+    data = request.get_json(force=True) or {}
+    updates = {}
+    if data.get('caption'):
+        updates['caption'] = data['caption']
+    if data.get('status') in ('pending', 'approved', 'rejected'):
+        updates['status'] = data['status']
+        updates['error_msg'] = ''        # clear error on status reset
+    if not updates:
+        return jsonify({'success': False, 'error': 'Nada que actualizar'}), 400
+    db.update_post(post_id, **updates)
+    return jsonify({'success': True})
 
 
 @app.route('/api/posts/<int:post_id>', methods=['DELETE'])
@@ -366,6 +507,63 @@ def api_seed():
                         'trace': _tb.format_exc()[-2000:]}), 500
 
 
+# ── API: Content Generate (genera + guarda 7 posts en DB) ────────────────────
+
+@app.route('/api/content/generate/<brand_id>', methods=['POST'])
+def api_content_generate(brand_id):
+    import json as _json
+    brand = db.get_brand(brand_id)
+    if not brand:
+        return jsonify({'success': False, 'error': 'Brand not found'}), 404
+
+    data = request.get_json(force=True) or {}
+    config = {
+        'weeks':          int(data.get('weeks', 1)),
+        'post_count':     int(data.get('post_count', 3)),
+        'reel_count':     int(data.get('reel_count', 2)),
+        'story_count':    int(data.get('story_count', 1)),
+        'carousel_count': int(data.get('carousel_count', 1)),
+        'platforms':      data.get('platforms', ['instagram']),
+        'topic':          data.get('topic', ''),
+    }
+
+    result = agent.generate_grid(brand, **config)
+    grid   = result.get('grid', [])
+    if not grid:
+        return jsonify({'success': False, 'error': 'Grid generation failed', 'detail': result}), 500
+
+    saved_ids = []
+    for item in grid:
+        extra = {k: v for k, v in item.items()
+                 if k not in ('caption', 'image_url', 'video_url', 'platform',
+                              'content_type', 'suggested_day', 'suggested_time',
+                              'hashtags', 'scheduled_for')}
+        post_id = db.create_post(
+            brand_id,
+            item.get('caption', ''),
+            image_url      = item.get('image_url', ''),
+            video_url      = item.get('video_url', ''),
+            platform       = item.get('platform', 'instagram'),
+            scheduled_for  = item.get('scheduled_for'),
+            content_type   = item.get('content_type', 'post'),
+            suggested_day  = item.get('day', ''),
+            suggested_time = item.get('time', ''),
+            extra_json     = _json.dumps(extra),
+        )
+        saved_ids.append(post_id)
+
+    posts = [db.get_post(pid) for pid in saved_ids if pid]
+    pending = [p for p in posts if p and p.get('status') == 'pending']
+
+    return jsonify({
+        'success':   True,
+        'generated': len(grid),
+        'saved':     len(saved_ids),
+        'pending':   len(pending),
+        'post_ids':  saved_ids,
+    })
+
+
 # ── API: Content Grid ─────────────────────────────────────────────────────────
 
 @app.route('/api/generate-grid/<brand_id>', methods=['POST'])
@@ -388,9 +586,6 @@ def api_generate_grid(brand_id):
     }
 
     result = agent.generate_grid(brand, **config)
-
-    if data.get('generate_images') and result.get('grid'):
-        result['grid'] = agent.generate_grid_images(result['grid'], brand)
 
     if data.get('save') and result.get('grid'):
         import json as _json
@@ -448,7 +643,22 @@ def api_bulk_save_posts():
         )
         saved_ids.append(post_id)
 
-    return jsonify({'success': True, 'saved_ids': saved_ids, 'total': len(saved_ids)})
+    # If generate_media=True, spawn background thread — response is immediate
+    media_generating = False
+    if data.get('generate_media') and saved_ids:
+        from config.settings import IMAGES_ENABLED
+        if IMAGES_ENABLED:
+            import threading
+            t = threading.Thread(
+                target=_generate_media_background,
+                args=(saved_ids, brand),
+                daemon=True,
+            )
+            t.start()
+            media_generating = True
+
+    return jsonify({'success': True, 'saved_ids': saved_ids,
+                    'total': len(saved_ids), 'media_generating': media_generating})
 
 
 # ── API: Schedule Config ───────────────────────────────────────────────────────
@@ -465,6 +675,165 @@ def api_save_schedule(brand_id):
         configs = [configs]
     db.save_schedule(brand_id, configs)
     return jsonify({'success': True, 'schedule': db.get_schedule(brand_id)})
+
+
+# ── API: Video Generation (OpenMontage Bridge) ───────────────────────────────
+
+@app.route('/api/video/generate/<brand_id>', methods=['POST'])
+def api_video_generate(brand_id):
+    """
+    Generate a professional Reel/TikTok/Story using OpenMontage (FLUX Pro + Kling v3).
+    Runs in background thread — returns job_id immediately.
+
+    Format is decided by platform_config based on platform + content_type:
+      platform=instagram, content_type=reel   → 15 sec, 3 clips × 5s
+      platform=instagram, content_type=story  → 6 sec,  1 clip  × 5s
+      platform=tiktok,    content_type=tiktok → 28 sec, 3 clips × 10s
+
+    Body params:
+      post_id       int    (optional) — attach video to existing post
+      caption       str    (optional) — used to inform visual/narration prompts
+      content_type  str    reel|story|tiktok (default: reel)
+      platform      str    instagram|tiktok|facebook (default: instagram)
+      custom_prompt str    (optional) — override auto-generated visual prompt
+    """
+    import openmontage_bridge as bridge
+
+    brand = db.get_brand(brand_id)
+    if not brand:
+        return jsonify({'success': False, 'error': 'Brand not found'}), 404
+
+    data         = request.get_json(force=True) or {}
+    post_id      = data.get('post_id')
+    caption      = data.get('caption', '')
+    content_type = data.get('content_type', 'reel')
+    platform     = data.get('platform', 'instagram')
+    custom_p     = data.get('custom_prompt', '')
+
+    if post_id:
+        post = db.get_post(int(post_id))
+        if not post:
+            return jsonify({'success': False, 'error': 'Post not found'}), 404
+        caption      = caption or post.get('caption', '')
+        content_type = content_type or post.get('content_type', 'reel')
+        platform     = platform     or post.get('platform', 'instagram')
+
+    job_id = bridge.start_reel_job(
+        brand        = brand,
+        post_id      = int(post_id) if post_id else None,
+        caption      = caption,
+        content_type = content_type,
+        platform     = platform,
+        custom_prompt= custom_p,
+    )
+    return jsonify({'success': True, 'job_id': job_id,
+                    'status': 'queued', 'platform': platform,
+                    'content_type': content_type})
+
+
+@app.route('/api/video/status/<job_id>', methods=['GET'])
+def api_video_status(job_id):
+    """Poll the status of a background video generation job."""
+    import openmontage_bridge as bridge
+    job = bridge.get_job(job_id)
+    if not job:
+        return jsonify({'success': False, 'error': 'Job not found'}), 404
+    return jsonify({'success': True, **job})
+
+
+@app.route('/api/image/generate/<brand_id>', methods=['POST'])
+def api_image_generate(brand_id):
+    """
+    Generate a FLUX Pro image for a post or carousel using OpenMontage bridge.
+    Synchronous — waits for the image and updates the post DB.
+
+    Body params:
+      post_id       int    (optional) — update this post with the generated image_url
+      caption       str    (optional) — used to inform visual prompt
+      content_type  str    post|carousel (default: post)
+      custom_prompt str    (optional) — override auto-generated visual prompt
+    """
+    import openmontage_bridge as bridge
+
+    brand = db.get_brand(brand_id)
+    if not brand:
+        return jsonify({'success': False, 'error': 'Brand not found'}), 404
+
+    data         = request.get_json(force=True) or {}
+    post_id      = data.get('post_id')
+    caption      = data.get('caption', '')
+    content_type = data.get('content_type', 'post')
+    custom_p     = data.get('custom_prompt', '')
+
+    if post_id:
+        post = db.get_post(int(post_id))
+        if not post:
+            return jsonify({'success': False, 'error': 'Post not found'}), 404
+        caption      = caption or post.get('caption', '')
+        content_type = content_type or post.get('content_type', 'post')
+
+    result = bridge.generate_image(brand, content_type, caption, custom_p)
+    if not result.get('success'):
+        return jsonify({'success': False, 'error': result.get('error')}), 500
+
+    if post_id:
+        db.update_post(int(post_id), image_url=result['image_url'])
+
+    return jsonify({'success': True,
+                    'image_url': result['image_url'],
+                    'post_id': post_id})
+
+
+# ── Media files (videos/images generated by OpenMontage Bridge) ──────────────
+
+@app.route('/media/videos/<path:filename>')
+def media_video(filename):
+    from flask import send_from_directory
+    import openmontage_bridge as bridge
+    vid_dir = bridge._storage_dir("videos")
+    return send_from_directory(str(vid_dir), filename)
+
+
+@app.route('/media/images/<path:filename>')
+def media_image(filename):
+    from flask import send_from_directory
+    import openmontage_bridge as bridge
+    img_dir = bridge._storage_dir("images")
+    return send_from_directory(str(img_dir), filename)
+
+
+@app.route('/media/audio/<path:filename>')
+def media_audio(filename):
+    from flask import send_from_directory
+    import openmontage_bridge as bridge
+    audio_dir = bridge._storage_dir("audio")
+    return send_from_directory(str(audio_dir), filename)
+
+
+# ── Voxify Stats (para Zeus bot en Railway) ───────────────────────────────────
+
+@app.route('/voxify-stats', methods=['GET'])
+def api_voxify_stats_get():
+    snap = db.get_latest_stats_snapshot()
+    if not snap:
+        return jsonify({
+            'fecha': datetime.utcnow().date().isoformat(),
+            'total_prospectos': 0,
+            'calificados': 0,
+            'nuevos': 0,
+            'contactados': 0,
+            'google_calls_hoy': 0,
+            'google_costo_total': 0.0,
+        })
+    snap.pop('raw_json', None)
+    return jsonify(snap)
+
+
+@app.route('/voxify-stats', methods=['POST'])
+def api_voxify_stats_post():
+    data = request.get_json(force=True) or {}
+    db.save_stats_snapshot(data)
+    return jsonify({'success': True})
 
 
 # ── Entry Point ───────────────────────────────────────────────────────────────

@@ -29,6 +29,7 @@ _REQUIRED_BRAND_COLS = frozenset({
     'id', 'name', 'tagline', 'description', 'industry', 'geography',
     'website_url', 'logo_url', 'instagram_handle', 'color',
     'meta_access_token', 'instagram_account_id', 'facebook_page_id',
+    'tiktok_handle', 'tiktok_user_id', 'tiktok_access_token',
     'competitors', 'differentiators', 'audience_profile', 'brand_tone',
     'unique_value_proposition', 'hashtags', 'kpi_30_days', 'kpi_60_days',
     'kpi_90_days', 'strategy_phases', 'mission', 'brand_values', 'voice',
@@ -50,6 +51,9 @@ CREATE TABLE brands (
     meta_access_token        TEXT DEFAULT '',
     instagram_account_id     TEXT DEFAULT '',
     facebook_page_id         TEXT DEFAULT '',
+    tiktok_handle            TEXT DEFAULT '',
+    tiktok_user_id           TEXT DEFAULT '',
+    tiktok_access_token      TEXT DEFAULT '',
     competitors              TEXT DEFAULT '[]',
     differentiators          TEXT DEFAULT '[]',
     audience_profile         TEXT DEFAULT '',
@@ -74,8 +78,9 @@ CREATE TABLE brands (
 
 _REQUIRED_POST_COLS = frozenset({
     'id', 'brand_id', 'caption', 'image_url', 'video_url', 'platform',
-    'status', 'scheduled_for', 'posted_at', 'post_id_meta', 'error_msg',
-    'created_at', 'content_type', 'suggested_day', 'suggested_time', 'extra_json',
+    'status', 'scheduled_for', 'posted_at', 'post_id_meta', 'post_id_tiktok',
+    'error_msg', 'created_at', 'content_type', 'suggested_day', 'suggested_time',
+    'extra_json',
 })
 
 _POSTS_DDL = """
@@ -130,6 +135,9 @@ def init_db():
             meta_access_token        TEXT DEFAULT '',
             instagram_account_id     TEXT DEFAULT '',
             facebook_page_id         TEXT DEFAULT '',
+            tiktok_handle            TEXT DEFAULT '',
+            tiktok_user_id           TEXT DEFAULT '',
+            tiktok_access_token      TEXT DEFAULT '',
             competitors              TEXT DEFAULT '[]',
             differentiators          TEXT DEFAULT '[]',
             audience_profile         TEXT DEFAULT '',
@@ -160,9 +168,10 @@ def init_db():
             status        TEXT DEFAULT 'pending',
             scheduled_for TEXT,
             posted_at     TEXT,
-            post_id_meta  TEXT DEFAULT '',
-            error_msg     TEXT DEFAULT '',
-            created_at    TEXT DEFAULT (datetime('now')),
+            post_id_meta   TEXT DEFAULT '',
+            post_id_tiktok TEXT DEFAULT '',
+            error_msg      TEXT DEFAULT '',
+            created_at     TEXT DEFAULT (datetime('now')),
             FOREIGN KEY (brand_id) REFERENCES brands(id)
         );
 
@@ -195,6 +204,19 @@ def init_db():
             updated_at   TEXT DEFAULT (datetime('now')),
             UNIQUE(brand_id, platform),
             FOREIGN KEY (brand_id) REFERENCES brands(id)
+        );
+
+        CREATE TABLE IF NOT EXISTS stats_snapshots (
+            id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+            fecha              TEXT    NOT NULL DEFAULT (date('now')),
+            total_prospectos   INTEGER DEFAULT 0,
+            calificados        INTEGER DEFAULT 0,
+            nuevos             INTEGER DEFAULT 0,
+            contactados        INTEGER DEFAULT 0,
+            google_calls_hoy   INTEGER DEFAULT 0,
+            google_costo_total REAL    DEFAULT 0.0,
+            raw_json           TEXT    DEFAULT '{}',
+            created_at         TEXT    DEFAULT (datetime('now'))
         );
         """)
     _check_and_fix_schema()
@@ -381,6 +403,40 @@ def get_schedule(brand_id: str) -> list:
         except Exception:
             r['days_of_week'] = []
         result.append(r)
+    return result
+
+
+def save_stats_snapshot(data: dict):
+    with _conn() as c:
+        c.execute("""
+            INSERT INTO stats_snapshots
+                (fecha, total_prospectos, calificados, nuevos, contactados,
+                 google_calls_hoy, google_costo_total, raw_json)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            data.get('fecha', datetime.utcnow().date().isoformat()),
+            int(data.get('total_prospectos', 0)),
+            int(data.get('calificados', 0)),
+            int(data.get('nuevos', 0)),
+            int(data.get('contactados', 0)),
+            int(data.get('google_calls_hoy', 0)),
+            float(data.get('google_costo_total', 0.0)),
+            json.dumps(data),
+        ))
+
+
+def get_latest_stats_snapshot() -> dict:
+    with _conn() as c:
+        row = c.execute(
+            "SELECT * FROM stats_snapshots ORDER BY created_at DESC LIMIT 1"
+        ).fetchone()
+    if not row:
+        return {}
+    result = dict(row)
+    try:
+        result.update(json.loads(result.get('raw_json') or '{}'))
+    except Exception:
+        pass
     return result
 
 
