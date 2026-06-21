@@ -268,39 +268,29 @@ def api_post_status(post_id):
 
 def _do_generate_post_media(post_id: int, post: dict, brand: dict, direction: str = ''):
     """Core media generation logic for one post. Safe to call in a background thread."""
+    import openmontage_bridge as bridge
+
     content_type = post.get('content_type', 'post')
-    caption = post.get('caption', '')
+    caption      = post.get('caption', '')
     if direction:
         caption = f"{caption}\n[Visual direction: {direction}]"
-    geo = brand.get('geography', 'United States')
     try:
-        scene = agent._caption_to_visual(caption, brand, content_type)
         if content_type in ('reel', 'story'):
-            from tools.media_generator import generate_video_from_text
-            motion = ("smooth vertical pan, warm golden hour lighting"
-                      if content_type == 'story'
-                      else "dynamic camera movement, energetic viral social media")
-            result = generate_video_from_text(
-                f"{scene}, {geo}, {motion}, 9:16 vertical, cinematic, no text",
-                aspect_ratio="9:16", duration=5
-            )
-            if result.get('video_url'):
-                db.update_post(post_id, video_url=result['video_url'])
-                logger.info(f"[media] video OK → post {post_id}")
-                return {'success': True, 'video_url': result['video_url']}
+            # Use full bridge pipeline for video content
+            platform = post.get('platform', 'instagram')
+            job_id   = bridge.start_reel_job(brand, post_id, caption,
+                                             content_type, platform)
+            logger.info(f"[media] video job {job_id} queued → post {post_id}")
+            return {'success': True, 'job_id': job_id}
         else:
-            from tools.media_generator import generate_image
-            framing = ("editorial clean composition, professional"
-                       if content_type == 'carousel'
-                       else "editorial lifestyle photo, magazine quality")
-            fmt = agent._image_format_for_item({'content_type': content_type,
-                                                'platform': post.get('platform', 'instagram')})
-            result = generate_image(f"{scene}, {geo}, {framing}", fmt)
-            if result.get('image_url'):
+            # Posts and carousels: FLUX Pro image via bridge
+            result = bridge.generate_image(brand, content_type, caption)
+            if result.get('success'):
                 db.update_post(post_id, image_url=result['image_url'])
-                logger.info(f"[media] image OK → post {post_id}")
+                logger.info(f"[media] image OK → post {post_id} {result['image_url'][:60]}")
                 return {'success': True, 'image_url': result['image_url']}
-        return {'success': False, 'error': result.get('error', 'Sin URL')}
+            logger.error(f"[media] image failed post {post_id}: {result.get('error')}")
+            return {'success': False, 'error': result.get('error', 'Sin URL')}
     except Exception as e:
         logger.error(f"[media] post {post_id}: {e}")
         return {'success': False, 'error': str(e)}
