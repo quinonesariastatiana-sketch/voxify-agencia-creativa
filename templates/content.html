@@ -51,6 +51,8 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .s-pending{background:rgba(245,158,11,.12);color:var(--yellow)}
 .s-approved{background:rgba(6,214,160,.12);color:var(--cyan)}
 .s-posted{background:rgba(99,91,255,.12);color:#a5b4fc}
+.s-publishing{background:rgba(99,91,255,.08);color:#a5b4fc;animation:pulse 1.4s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
 .s-rejected,.s-failed,.s-deleted{background:rgba(239,68,68,.1);color:var(--red)}
 .actions{display:flex;gap:5px;white-space:nowrap}
 .act-btn{padding:5px 10px;border-radius:7px;border:none;cursor:pointer;font-size:11px;font-weight:700;transition:.15s}
@@ -62,11 +64,23 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .act-publish:hover{background:#7c75ff}
 .act-delete{background:rgba(255,255,255,.06);color:var(--muted)}
 .act-delete:hover{background:rgba(255,255,255,.1)}
+.act-edit{background:rgba(99,91,255,.1);color:#a5b4fc}
+.act-edit:hover{background:rgba(99,91,255,.28)}
+.act-regen{background:rgba(245,158,11,.1);color:var(--yellow)}
+.act-regen:hover{background:rgba(245,158,11,.24)}
+.feedback-chips{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
+.chip{padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;transition:.15s}
+.chip:hover,.chip.active{border-color:var(--purple);color:#a5b4fc;background:rgba(99,91,255,.12)}
 .empty{color:var(--muted);text-align:center;padding:48px;font-size:13px}
 
 /* MODAL */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:500;backdrop-filter:blur(4px)}
 .modal{background:var(--card);border:1px solid var(--border);border-radius:16px;width:480px;padding:28px;position:relative}
+/* Media preview modal */
+#media-preview-modal video,#media-preview-modal img{max-height:80vh;max-width:100%;border-radius:12px;display:block}
+.media-thumb{cursor:pointer;position:relative;flex-shrink:0}
+.media-thumb::after{content:'▶';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;background:rgba(0,0,0,.3);border-radius:5px;opacity:0;transition:.15s}
+.media-thumb:hover::after{opacity:1}
 .modal-title{font-size:17px;font-weight:700;margin-bottom:20px}
 .field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
 label{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.4px}
@@ -156,6 +170,57 @@ textarea{resize:vertical;min-height:80px}
   </div>
 </div>
 
+<!-- Edit caption modal -->
+<div class="modal-overlay" id="edit-post-modal" style="display:none" onclick="if(event.target===this)closeEditModal()">
+  <div class="modal" style="width:520px">
+    <div class="modal-title">✏️ Editar Copy</div>
+    <div class="field">
+      <label>CAPTION</label>
+      <textarea id="edit-caption-text" rows="7" style="resize:vertical;font-size:13px;line-height:1.6"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeEditModal()">Cancelar</button>
+      <button class="btn btn-generate" id="edit-save-btn" onclick="saveEditedCaption()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Adjust / regenerate media modal -->
+<div class="modal-overlay" id="adjust-media-modal" style="display:none" onclick="if(event.target===this)closeAdjustMediaModal()">
+  <div class="modal" style="width:460px">
+    <div class="modal-title">🎨 Ajustar Imagen / Video</div>
+    <div class="field">
+      <label>DIRECCIÓN VISUAL (opcional)</label>
+      <input id="media-direction" placeholder="ej: exterior del local, persona mayor, más alegre, noche…">
+      <div style="font-size:11px;color:var(--muted);margin-top:6px">Deja en blanco para regenerar con el mismo criterio</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeAdjustMediaModal()">Cancelar</button>
+      <button class="btn btn-generate" onclick="confirmAdjustMedia()">🔄 Regenerar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Reject with feedback modal -->
+<div class="modal-overlay" id="reject-modal" style="display:none" onclick="if(event.target===this)closeRejectModal()">
+  <div class="modal" style="width:420px">
+    <div class="modal-title">✗ Rechazar — ¿Qué ajustar?</div>
+    <div class="feedback-chips">
+      <button class="chip" id="chip-copy"   onclick="selectChip('copy')"  >✏️ El copy</button>
+      <button class="chip" id="chip-image"  onclick="selectChip('image')" >🖼 La imagen/video</button>
+      <button class="chip" id="chip-both"   onclick="selectChip('both')"  >↕️ Ambos</button>
+    </div>
+    <div class="field">
+      <label>NOTA (opcional)</label>
+      <input id="reject-note" placeholder="ej: el tono es muy formal, imagen sin personas…">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeRejectModal()">Cancelar</button>
+      <button class="btn" style="background:var(--red);color:#fff" onclick="confirmReject()">✗ Rechazar</button>
+    </div>
+  </div>
+</div>
+
 <!-- Grid modal -->
 <div class="modal-overlay" id="grid-modal" style="display:none" onclick="if(event.target===this)closeGridModal()">
   <div class="modal" style="width:540px;max-height:90vh;overflow-y:auto">
@@ -194,7 +259,7 @@ textarea{resize:vertical;min-height:80px}
         <label>IMÁGENES IA</label>
         <label style="display:flex;align-items:center;gap:8px;padding-top:6px;font-size:12px;font-weight:400;color:var(--text);cursor:pointer">
           <input type="checkbox" id="grid-images" style="accent-color:#635BFF">
-          🎬 Generar fotos + videos con fal.ai <span style="color:var(--muted)">(posts=foto, reels/stories=video)</span>
+          🎬 Generar fotos/videos al guardar <span style="color:var(--muted)">(posts=foto, reels/stories=video)</span>
         </label>
       </div>
     </div>
@@ -269,9 +334,9 @@ function renderTable() {
     <td><span style="color:${p.brand_color||'#635BFF'};font-weight:700;font-size:13px">${p.brand_name||p.brand_id}</span></td>
     <td class="caption-cell" style="display:flex;gap:8px;align-items:flex-start">
       ${p.video_url
-        ? `<video src="${p.video_url}" style="width:44px;height:44px;object-fit:cover;border-radius:5px;flex-shrink:0" autoplay muted loop playsinline></video>`
+        ? `<div class="media-thumb" onclick="openMediaPreview('video','${p.video_url}')"><video src="${p.video_url}" style="width:44px;height:44px;object-fit:cover;border-radius:5px" muted loop playsinline autoplay></video></div>`
         : p.image_url
-          ? `<img src="${p.image_url}" style="width:44px;height:44px;object-fit:cover;border-radius:5px;flex-shrink:0">`
+          ? `<div class="media-thumb" onclick="openMediaPreview('image','${p.image_url}')"><img src="${p.image_url}" style="width:44px;height:44px;object-fit:cover;border-radius:5px"></div>`
           : ''}
       <div style="flex:1;min-width:0">
         <div class="caption-text" id="cap-${p.id}">${escHtml(p.caption)}</div>
@@ -296,20 +361,25 @@ function fmtDate(p) {
   return (p.posted_at||p.created_at||'').slice(0,16);
 }
 function escHtml(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>'); }
-function statusLabel(s) { return {pending:'Pendiente',approved:'Aprobado',posted:'Publicado',rejected:'Rechazado',failed:'Fallido',deleted:'Eliminado'}[s]||s; }
+function statusLabel(s) { return {pending:'Pendiente',approved:'Aprobado',posted:'Publicado',publishing:'⏳ Publicando...',rejected:'Rechazado',failed:'Fallido',deleted:'Eliminado'}[s]||s; }
 function typeLabel(t) { return {post:'📸 Post',reel:'🎬 Reel',story:'⭕ Story',carousel:'🎠 Carrusel'}[t||'post']||t||'Post'; }
 function actionsFor(p) {
   const acts = [];
+  if (!['deleted','posted','publishing'].includes(p.status)) {
+    acts.push(`<button class="act-btn act-edit" title="Editar copy" onclick="openEditModal(${p.id})">✏️</button>`);
+  }
   if (p.status === 'pending') {
     acts.push(`<button class="act-btn act-approve" onclick="approvePost(${p.id})">✓ Aprobar</button>`);
-    acts.push(`<button class="act-btn act-reject" onclick="rejectPost(${p.id})">✗</button>`);
+    acts.push(`<button class="act-btn act-reject" onclick="openRejectModal(${p.id})">✗</button>`);
   }
   if (p.status === 'approved') {
     acts.push(`<button class="act-btn act-publish" onclick="publishPost(${p.id})">↑ Publicar</button>`);
   }
-  if (!['deleted','posted'].includes(p.status)) {
+  if (!['deleted','posted','publishing'].includes(p.status)) {
     if (!p.image_url && !p.video_url) {
       acts.push(`<button class="act-btn" style="background:rgba(99,91,255,.12);color:#a5b4fc" id="media-btn-${p.id}" onclick="generateMedia(${p.id},this)">${['reel','story'].includes(p.content_type) ? '🎬' : '🖼'} Media</button>`);
+    } else {
+      acts.push(`<button class="act-btn act-regen" id="media-btn-${p.id}" title="Ajustar imagen/video" onclick="openAdjustMediaModal(${p.id})">🔄</button>`);
     }
     acts.push(`<button class="act-btn act-delete" onclick="deletePost(${p.id})">🗑</button>`);
   }
@@ -331,33 +401,137 @@ async function approvePost(id) {
   else toast('Error: ' + d.error, true);
 }
 
-async function rejectPost(id) {
-  const r = await fetch(`/api/posts/${id}/reject`, {method:'POST'});
+// ── Edit caption ──────────────────────────────────────────────────────────────
+let editPostId = null;
+function openEditModal(id) {
+  const p = allPosts.find(x => x.id === id);
+  if (!p) return;
+  editPostId = id;
+  document.getElementById('edit-caption-text').value = p.caption || '';
+  const btn = document.getElementById('edit-save-btn');
+  btn.disabled = false; btn.textContent = '💾 Guardar';
+  document.getElementById('edit-post-modal').style.display = 'flex';
+  setTimeout(() => document.getElementById('edit-caption-text').focus(), 50);
+}
+function closeEditModal() { document.getElementById('edit-post-modal').style.display = 'none'; }
+async function saveEditedCaption() {
+  const caption = document.getElementById('edit-caption-text').value.trim();
+  if (!caption) return;
+  const btn = document.getElementById('edit-save-btn');
+  btn.disabled = true; btn.textContent = 'Guardando...';
+  try {
+    const r = await fetch(`/api/posts/${editPostId}`, {
+      method:'PATCH', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({caption}),
+    });
+    const d = await r.json();
+    if (d.success) { toast('✓ Copy actualizado'); closeEditModal(); loadPosts(); }
+    else toast('Error: ' + (d.error||''), true);
+  } catch(e) { toast('Error: ' + e.message, true); }
+  btn.disabled = false; btn.textContent = '💾 Guardar';
+}
+
+// ── Adjust / regenerate media ─────────────────────────────────────────────────
+let adjustMediaId = null;
+function openAdjustMediaModal(id) {
+  adjustMediaId = id;
+  document.getElementById('media-direction').value = '';
+  document.getElementById('adjust-media-modal').style.display = 'flex';
+  setTimeout(() => document.getElementById('media-direction').focus(), 50);
+}
+function closeAdjustMediaModal() { document.getElementById('adjust-media-modal').style.display = 'none'; }
+async function confirmAdjustMedia() {
+  const direction = document.getElementById('media-direction').value.trim();
+  closeAdjustMediaModal();
+  const btn = document.getElementById(`media-btn-${adjustMediaId}`);
+  if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
+  try {
+    await fetch(`/api/posts/${adjustMediaId}/generate-media`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({direction}),
+    });
+    toast('🎨 Regenerando en segundo plano — recarga en ~30s para ver el resultado');
+    if (btn) { btn.textContent = '⏳ En proceso'; }
+  } catch(e) {
+    toast('Error: ' + e.message, true);
+    if (btn) { btn.disabled = false; btn.textContent = '🔄'; }
+  }
+}
+
+// ── Reject with feedback ──────────────────────────────────────────────────────
+let rejectPostId = null;
+let rejectWhat   = '';
+function openRejectModal(id) {
+  rejectPostId = id;
+  rejectWhat = '';
+  document.getElementById('reject-note').value = '';
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  document.getElementById('reject-modal').style.display = 'flex';
+}
+function closeRejectModal() { document.getElementById('reject-modal').style.display = 'none'; }
+function selectChip(what) {
+  rejectWhat = what;
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  document.getElementById(`chip-${what}`).classList.add('active');
+}
+async function confirmReject() {
+  const note = document.getElementById('reject-note').value.trim();
+  const r = await fetch(`/api/posts/${rejectPostId}/reject`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({what: rejectWhat, note}),
+  });
   const d = await r.json();
-  if (d.success) { toast('Post rechazado'); loadPosts(); }
-  else toast('Error: ' + d.error, true);
+  if (d.success) { toast('Post rechazado'); closeRejectModal(); loadPosts(); }
+  else toast('Error: ' + (d.error||''), true);
 }
 
 async function publishPost(id) {
   const btn = document.querySelector(`#row-${id} .act-publish`);
-  if (btn) { btn.disabled = true; btn.textContent = '...'; }
-  const r = await fetch(`/api/posts/${id}/publish`, {method:'POST'});
-  const d = await r.json();
-  if (d.success) { toast('✓ Publicado en Meta'); loadPosts(); }
-  else toast('Error: ' + (d.errors||[]).join(', '), true);
+  if (btn) { btn.disabled = true; btn.textContent = '⏳...'; }
+  try {
+    const r = await fetch(`/api/posts/${id}/publish`, {method:'POST'});
+    const d = await r.json();
+    if (!d.success && !d.queued) {
+      toast('Error: ' + (d.error||''), true);
+      if (btn) { btn.disabled = false; btn.textContent = '↑ Publicar'; }
+      return;
+    }
+    // Reload table immediately to show "⏳ Publicando..." badge
+    await loadPosts();
+    toast('⏳ Publicando en Instagram — puede tardar hasta 2 min para videos...');
+    // Poll every 8 seconds until status changes from publishing
+    let polls = 0;
+    const interval = setInterval(async () => {
+      polls++;
+      try {
+        const sr = await fetch(`/api/posts/${id}/status`);
+        const sd = await sr.json();
+        if (sd.status !== 'publishing') {
+          clearInterval(interval);
+          await loadPosts();
+          if (sd.status === 'posted') toast('✓ Publicado en Meta 🎉');
+          else if (sd.status === 'failed') toast('✗ Error al publicar: ' + (sd.error_msg||''), true);
+        }
+      } catch(_) {}
+      if (polls > 25) clearInterval(interval); // stop after ~3 min
+    }, 8000);
+  } catch(e) {
+    toast('Error: ' + e.message, true);
+    if (btn) { btn.disabled = false; btn.textContent = '↑ Publicar'; }
+  }
 }
 
 async function generateMedia(id, btn) {
-  if (btn) { btn.disabled = true; btn.textContent = '⏳...'; }
+  if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
   try {
     const r = await fetch(`/api/posts/${id}/generate-media`, {method:'POST'});
     const d = await r.json();
     if (d.success) {
-      toast(`✓ Media generada`);
-      loadPosts();
+      toast('🎨 Generando en segundo plano — recarga en ~30s para ver el resultado');
+      if (btn) { btn.textContent = '⏳ En proceso'; }
     } else {
-      toast('Error: ' + d.error, true);
-      if (btn) { btn.disabled = false; btn.textContent = btn.textContent.replace('⏳...', btn.dataset.label || '🖼 Media'); }
+      toast('Error: ' + (d.error||''), true);
+      if (btn) { btn.disabled = false; btn.textContent = '🖼 Media'; }
     }
   } catch(e) {
     toast('Error: ' + e.message, true);
@@ -437,9 +611,8 @@ async function generateGrid() {
   const brandId = document.getElementById('grid-brand').value;
   if (!brandId) { toast('Selecciona una marca', true); return; }
   const btn = document.getElementById('grid-gen-btn');
-  const genImages = document.getElementById('grid-images').checked;
   btn.disabled = true;
-  btn.textContent = genImages ? 'Generando + fotos... (puede tardar 60s)' : 'Generando... (puede tardar 30s)';
+  btn.textContent = 'Generando... (puede tardar 30s)';
 
   const platforms = [];
   if (document.getElementById('grid-ig').checked) platforms.push('instagram');
@@ -454,7 +627,6 @@ async function generateGrid() {
     carousel_count:  parseInt(document.getElementById('grid-carousels').value),
     platforms,
     topic:           document.getElementById('grid-topic').value,
-    generate_images: genImages,
     save:            false,
   };
 
@@ -488,9 +660,9 @@ function renderGridPreview(grid) {
   const html = grid.map(item => `
     <div style="background:rgba(255,255,255,.04);border-radius:8px;padding:10px;margin-bottom:6px;border-left:3px solid ${typeColors[item.content_type]||'#635BFF'};display:flex;gap:10px">
       ${item.video_url
-        ? `<video src="${item.video_url}" style="width:60px;height:60px;object-fit:cover;border-radius:6px;flex-shrink:0" autoplay muted loop playsinline></video>`
+        ? `<div class="media-thumb" onclick="openMediaPreview('video','${item.video_url}')"><video src="${item.video_url}" style="width:60px;height:60px;object-fit:cover;border-radius:6px" muted loop playsinline autoplay></video></div>`
         : item.image_url
-          ? `<img src="${item.image_url}" style="width:60px;height:60px;object-fit:cover;border-radius:6px;flex-shrink:0" onerror="this.style.display='none'">`
+          ? `<div class="media-thumb" onclick="openMediaPreview('image','${item.image_url}')"><img src="${item.image_url}" style="width:60px;height:60px;object-fit:cover;border-radius:6px" onerror="this.style.display='none'"></div>`
           : ''
       }
       <div style="flex:1;min-width:0">
@@ -510,6 +682,7 @@ function renderGridPreview(grid) {
 async function saveGrid() {
   const brandId = document.getElementById('grid-brand').value;
   if (!lastGrid.length) { toast('Genera la parrilla primero', true); return; }
+  const genMedia = document.getElementById('grid-images').checked;
   const btn = document.getElementById('grid-save-btn');
   btn.disabled = true;
   btn.textContent = 'Guardando...';
@@ -517,20 +690,23 @@ async function saveGrid() {
   try {
     const r = await fetch('/api/posts/bulk', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({brand_id: brandId, items: lastGrid}),
+      body: JSON.stringify({brand_id: brandId, items: lastGrid, generate_media: genMedia}),
     });
     const d = await r.json();
-    if (d.success) {
-      toast(`✓ ${d.total} posts guardados`);
-      closeGridModal();
-      loadPosts();
-    } else {
-      toast('Error guardando: ' + d.error, true);
-      btn.disabled = false;
-      btn.textContent = '💾 Guardar todos';
+    if (!d.success) {
+      toast('Error: ' + (d.error||''), true);
+      return;
     }
+    if (d.media_generating) {
+      toast(`✓ ${d.total} posts guardados · Railway genera las medias en background 🎨`);
+    } else {
+      toast(`✓ ${d.total} posts guardados`);
+    }
+    closeGridModal();
+    loadPosts();
   } catch(e) {
     toast('Error: ' + e.message, true);
+  } finally {
     btn.disabled = false;
     btn.textContent = '💾 Guardar todos';
   }
@@ -538,6 +714,37 @@ async function saveGrid() {
 
 // Initial render
 renderTable();
+
+// Auto-refresh every 30s to pick up background-generated media
+setInterval(() => {
+  if (document.visibilityState === 'visible') loadPosts();
+}, 30000);
+
+// ── Media preview modal ───────────────────────────────────────────────────────
+function openMediaPreview(type, url) {
+  const overlay = document.getElementById('media-preview-modal');
+  const container = document.getElementById('media-preview-container');
+  if (type === 'video') {
+    container.innerHTML = `<video src="${url}" controls autoplay style="max-height:80vh;max-width:min(420px,90vw);border-radius:12px;display:block"></video>`;
+  } else {
+    container.innerHTML = `<img src="${url}" style="max-height:80vh;max-width:min(420px,90vw);border-radius:12px;display:block">`;
+  }
+  overlay.style.display = 'flex';
+}
+function closeMediaPreview() {
+  const overlay = document.getElementById('media-preview-modal');
+  overlay.style.display = 'none';
+  document.getElementById('media-preview-container').innerHTML = '';
+}
 </script>
+
+<!-- Media preview modal -->
+<div class="modal-overlay" id="media-preview-modal" style="display:none;z-index:600" onclick="if(event.target===this)closeMediaPreview()">
+  <div style="position:relative">
+    <button onclick="closeMediaPreview()" style="position:absolute;top:-36px;right:0;background:rgba(255,255,255,.12);border:none;color:#fff;border-radius:8px;padding:5px 12px;cursor:pointer;font-size:13px">✕ Cerrar</button>
+    <div id="media-preview-container"></div>
+  </div>
+</div>
+
 </body>
 </html>

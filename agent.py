@@ -180,14 +180,19 @@ Responde SOLO JSON:
     if "strategy" in modules:
         try:
             r = _ask(f"""{ctx}
-Define 3 fases de estrategia de CONTENIDO en redes sociales para 90 días.
-SOLO estrategia de social media: tipos de contenido, frecuencia, formatos, comunidad, colaboraciones.
-NO incluyas SEO, SEM, Google Ads, email marketing ni otras estrategias de marketing digital.
-Responde SOLO JSON:
-{{"strategy_phases": {{"phase_1": "Días 1-30: acción concreta en redes sociales",
-                       "phase_2": "Días 31-60: acción concreta en redes sociales",
-                       "phase_3": "Días 61-90: acción concreta en redes sociales"}}}}""", 800)
-            if r.get("strategy_phases"): results["strategy_phases"] = r["strategy_phases"]
+Define 3 fases de estrategia de contenido en redes sociales para 90 días.
+Cada fase: 1-2 líneas con tipos de post, frecuencia y objetivo concreto.
+SOLO Instagram/Facebook/TikTok. Sin SEO, Google Ads ni email.
+Responde SOLO JSON (valores deben ser strings cortos, máximo 200 caracteres cada uno):
+{{"strategy_phases": {{"phase_1": "Días 1-30: ...",
+                       "phase_2": "Días 31-60: ...",
+                       "phase_3": "Días 61-90: ..."}}}}""", 800)
+            sp = r.get("strategy_phases")
+            if sp and isinstance(sp, dict) and sp.get("phase_1"):
+                results["strategy_phases"] = {
+                    k: (v if isinstance(v, str) else json.dumps(v, ensure_ascii=False)[:300])
+                    for k, v in sp.items()
+                }
         except Exception as e:
             errors.append(f"call6:{e}")
 
@@ -245,7 +250,7 @@ def _image_format_for_item(item: dict) -> str:
 
 
 def _scene_base(brand: dict) -> str:
-    """English scene description based on brand industry."""
+    """Fallback English scene based on brand industry (used when caption-based prompt fails)."""
     industry = brand.get('industry', '').lower()
     if any(k in industry for k in ('café', 'coffee', 'alimento', 'food', 'bebida')):
         return "artisan coffee shop, specialty coffee bar, warm wood interior, barista at work"
@@ -262,36 +267,62 @@ def _scene_base(brand: dict) -> str:
     return f"small business owner, professional setting, latina entrepreneur, {industry or 'business'}"
 
 
-def _make_image_prompt(item: dict, brand: dict) -> str:
-    """English visual prompt for fal.ai FLUX Schnell (posts and carousels)."""
-    geo   = brand.get('geography', 'United States')
-    ctype = item.get('content_type', 'post')
-    topic = item.get('topic', '')
-    base  = _scene_base(brand)
+def _caption_to_visual(caption: str, brand: dict, content_type: str = 'post') -> str:
+    """Single Haiku call: Spanish caption → specific English photorealistic scene for fal.ai."""
+    name     = brand.get('name', '')
+    industry = brand.get('industry', '')
+    geo      = brand.get('geography', 'United States')
+    audience = brand.get('audience_profile', '') or 'Latino small business owners in the US'
+    media    = "photo" if content_type in ('post', 'carousel') else "9:16 vertical video"
+    try:
+        raw = _ask(
+            f'Brand: {name} ({industry}, {geo}). Audience: {audience[:100]}.\n'
+            f'Caption: {caption[:200]}\n\n'
+            f'Write ONE English photorealistic scene (25–35 words) for AI {media} generation.\n'
+            f'Must show: a real Latino person in a real US small business (restaurant, salon, retail, '
+            f'contractor, office), candid authentic moment, full body or 3/4 shot in their environment, '
+            f'natural expression matching the caption emotion. Each scene unique and specific.\n'
+            f'Respond ONLY JSON: {{"scene":"..."}}',
+            100
+        )
+        scene = str(raw.get('scene', '')).strip()
+        if scene:
+            return scene
+    except Exception as e:
+        logger.warning(f"[agent] _caption_to_visual failed: {e}")
+    return _scene_base(brand)
 
-    if ctype == 'carousel':
-        framing = "editorial clean composition, professional product or service shot"
-    else:
-        framing = "editorial lifestyle photo, clean composition, magazine quality"
 
-    topic_str = f", {topic}" if topic else ""
-    return f"{base}{topic_str}, {geo}, {framing}"
+def _batch_visual_prompts(grid: list, brand: dict) -> dict:
+    """One Haiku call → {index: english_visual_scene} per item, using each caption for uniqueness."""
+    name     = brand.get('name', '')
+    industry = brand.get('industry', '')
+    geo      = brand.get('geography', 'United States')
+    audience = brand.get('audience_profile', '') or 'Latino small business owners in the US'
 
+    items_text = '\n'.join(
+        f'{i}: [{item.get("content_type", "post")}] {(item.get("caption", "") or "")[:120]}'
+        for i, item in enumerate(grid)
+    )
 
-def _make_video_prompt(item: dict, brand: dict) -> str:
-    """English text-to-video prompt for fal.ai Kling (reels and stories)."""
-    geo   = brand.get('geography', 'United States')
-    ctype = item.get('content_type', 'reel')
-    topic = item.get('topic', '')
-    base  = _scene_base(brand)
-
-    if ctype == 'story':
-        motion = "smooth vertical pan, warm golden hour lighting, authentic lifestyle moment, 9:16 vertical"
-    else:  # reel
-        motion = "dynamic camera movement, energetic viral social media style, engaging opening shot, 9:16 vertical"
-
-    topic_str = f", {topic}" if topic else ""
-    return f"{base}{topic_str}, {geo}, {motion}, cinematic quality, no text overlays"
+    raw = _ask(
+        f'Brand: {name} ({industry}, {geo}). Audience: {audience[:100]}.\n\n'
+        f'For each post below, write a SPECIFIC English photorealistic scene (25–35 words) '
+        f'for AI image/video generation. Each scene must be DIFFERENT.\n'
+        f'Show: real Latino person in a real US small business (restaurant, salon, retail, '
+        f'contractor, food truck, boutique, office, etc.), candid authentic moment, '
+        f'full body or 3/4 shot in their actual environment, natural expression that matches '
+        f'the post emotion (happy, focused, surprised, proud, etc.).\n'
+        f'No text, logos, robots, or artificial-looking elements.\n\n'
+        f'{items_text}\n\n'
+        f'Respond ONLY JSON: {{"scenes":[{{"i":0,"scene":"..."}}]}}',
+        900
+    )
+    return {
+        int(s['i']): str(s['scene'])
+        for s in raw.get('scenes', [])
+        if isinstance(s, dict) and 'i' in s and 'scene' in s
+    }
 
 
 def generate_grid_images(grid: list, brand: dict) -> list:
@@ -299,6 +330,7 @@ def generate_grid_images(grid: list, brand: dict) -> list:
     Generates media for each grid item in parallel (max 5 workers):
     - posts, carousels → FLUX image (image_url)
     - reels, stories   → Kling text-to-video (video_url)
+    Visual prompts are derived from each item's caption for uniqueness.
     """
     from config.settings import IMAGES_ENABLED
     if not IMAGES_ENABLED:
@@ -308,14 +340,31 @@ def generate_grid_images(grid: list, brand: dict) -> list:
     from tools.media_generator import generate_image, generate_video_from_text
     from concurrent.futures import ThreadPoolExecutor, as_completed
 
+    geo = brand.get('geography', 'United States')
+
+    # One Haiku call to get a unique visual scene per item based on its caption
+    visual_scenes: dict = {}
+    try:
+        visual_scenes = _batch_visual_prompts(grid, brand)
+        logger.info(f"[agent] batch visual prompts: {len(visual_scenes)} scenes")
+    except Exception as e:
+        logger.warning(f"[agent] _batch_visual_prompts failed: {e}")
+
     def _gen_one(idx: int, item: dict):
         ctype = item.get('content_type', 'post')
+        scene = visual_scenes.get(idx) or _scene_base(brand)
         if ctype in ('reel', 'story'):
-            prompt = _make_video_prompt(item, brand)
+            motion = ("smooth vertical pan, warm golden hour lighting"
+                      if ctype == 'story'
+                      else "dynamic camera movement, energetic viral social media")
+            prompt = f"{scene}, {geo}, {motion}, 9:16 vertical, cinematic, no text"
             result = generate_video_from_text(prompt, aspect_ratio="9:16", duration=5)
             return idx, 'video', result.get('video_url', '')
         else:
-            prompt = _make_image_prompt(item, brand)
+            framing = ("editorial clean composition, professional"
+                       if ctype == 'carousel'
+                       else "editorial lifestyle photo, magazine quality")
+            prompt = f"{scene}, {geo}, {framing}"
             fmt    = _image_format_for_item(item)
             result = generate_image(prompt, fmt)
             return idx, 'image', result.get('image_url', '')

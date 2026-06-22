@@ -11,7 +11,13 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DB_PATH = os.environ.get("DB_PATH", os.path.join(os.path.dirname(__file__), "voxify.db"))
+import sys as _sys
+_default_db = (
+    "/data/voxify.db"
+    if _sys.platform != "win32" and os.path.isdir("/data")
+    else os.path.join(os.path.dirname(os.path.abspath(__file__)), "voxify.db")
+)
+DB_PATH = os.environ.get("DB_PATH", _default_db)
 
 _LIST_FIELDS = frozenset({"competitors", "differentiators", "hashtags",
                            "kpi_30_days", "kpi_60_days", "kpi_90_days", "brand_values"})

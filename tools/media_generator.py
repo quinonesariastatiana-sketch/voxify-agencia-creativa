@@ -77,20 +77,24 @@ def generate_image(prompt: str, platform_format: str = "instagram_post") -> dict
     if not IMAGES_ENABLED:
         return {"error": "FAL_API_KEY no configurado."}
 
+    # Strong photorealism suffix: real people, full body in environment, candid, no robot look
     full_prompt = (
-        f"{prompt}. "
-        "Professional lifestyle photography, natural lighting, authentic real people, "
-        "warm tones, editorial magazine quality. No text overlays, no graphics, no logos."
+        f"Photorealistic documentary photograph. {prompt}. "
+        "Real Latino person in authentic US small business environment, full body or 3/4 shot, "
+        "natural candid moment, natural skin tones, shot on Canon R5 35mm f/2.0, "
+        "warm ambient lighting, sharp focus on subject, environment clearly visible around them. "
+        "No text overlays, no logos, no graphics, no staged poses, no AI artifacts."
     )
     try:
         fal = _fal_client()
         result = fal.run(
-            "fal-ai/flux/schnell",
+            "fal-ai/flux/dev",          # Better quality than schnell — realistic photos
             arguments={
-                "prompt": full_prompt,
-                "image_size": IMAGE_SIZES.get(platform_format, "square_hd"),
-                "num_inference_steps": 4,
-                "num_images": 1,
+                "prompt":               full_prompt,
+                "image_size":           IMAGE_SIZES.get(platform_format, "square_hd"),
+                "num_inference_steps":  28,   # 28 steps vs 4 → much more realistic
+                "guidance_scale":       3.5,
+                "num_images":           1,
                 "enable_safety_checker": True,
             },
         )
@@ -98,8 +102,25 @@ def generate_image(prompt: str, platform_format: str = "instagram_post") -> dict
         logger.info(f"Imagen generada: {url}")
         return {"success": True, "image_url": url}
     except Exception as e:
-        logger.error(f"Error generando imagen: {e}")
-        return {"error": str(e)}
+        logger.error(f"Error generando imagen (flux/dev): {e}")
+        # Fallback to schnell if dev fails
+        try:
+            fal = _fal_client()
+            result = fal.run(
+                "fal-ai/flux/schnell",
+                arguments={
+                    "prompt":               full_prompt,
+                    "image_size":           IMAGE_SIZES.get(platform_format, "square_hd"),
+                    "num_inference_steps":  4,
+                    "num_images":           1,
+                    "enable_safety_checker": True,
+                },
+            )
+            url = result["images"][0]["url"]
+            return {"success": True, "image_url": url}
+        except Exception as e2:
+            logger.error(f"Error fallback schnell: {e2}")
+            return {"error": str(e2)}
 
 
 # ── Text-to-video generation ──────────────────────────────────────────────────

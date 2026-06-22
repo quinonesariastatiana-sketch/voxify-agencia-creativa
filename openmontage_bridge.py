@@ -61,59 +61,123 @@ def _set_job(job_id: str, **kwargs):
 
 # ── Prompt builders ───────────────────────────────────────────────────────────
 
-def _image_prompt(brand: dict, content_type: str, caption: str = "") -> str:
-    industry  = brand.get("industry", "business")
-    geography = brand.get("geography", "United States")
-    color     = brand.get("color", "#635BFF")
+def _scene_from_caption(caption: str) -> str:
+    """Derive a visual scene description from post caption keywords."""
+    c = (caption or "").lower()
 
-    base_style = (
-        "Cinematic vertical 9:16 photograph, editorial quality, "
-        "professional lifestyle photography, no text overlays, no logos. "
-        f"Location: {geography}. Brand color accent: {color}."
-    )
-    il = industry.lower()
-    if "saas" in il or "tech" in il or "software" in il:
-        subject = (
-            "Young Latino tech professional working on a sleek laptop in a modern coworking space, "
-            "looking inspired and confident, warm ambient lighting, bokeh background."
-        )
-    elif "café" in il or "coffee" in il or "food" in il:
-        subject = (
-            "Artisan barista pouring latte art in an upscale coffee shop, "
-            "golden hour warm light, shallow depth of field, rich tones."
-        )
-    elif "fashion" in il or "moda" in il:
-        subject = (
-            "Elegant woman wearing curated luxury outfit in a high-end boutique, "
-            "editorial fashion lighting, sophisticated composition."
-        )
-    else:
-        subject = (
-            f"Professional in {industry} industry, confident and engaging, "
-            "modern workspace, authentic candid moment."
-        )
-
-    hint = f" Scene concept: {caption[:120]}." if caption else ""
-    return f"{subject} {base_style} Vertical frame 9:16 for mobile.{hint}"
-
-
-def _motion_prompt(brand: dict, content_type: str) -> str:
-    il = brand.get("industry", "").lower()
-    if "saas" in il or "tech" in il:
+    if any(w in c for w in ("duerme", "duermas", "duermes", "mientras duermes", "dormir", "noche", "2 am")):
         return (
-            "Slow cinematic push-in, subtle parallax depth, soft focus pull, "
-            "dynamic modern energy, professional confidence, viral social media quality. "
-            "No text. No logos. Photorealistic. 9:16 vertical."
+            "Latin entrepreneur asleep in bed, smartphone on nightstand glowing with incoming "
+            "sales notifications and chat messages, dark bedroom with city lights through window, "
+            "cinematic blue-purple ambient light, shallow depth of field."
         )
-    if "café" in il or "coffee" in il or "food" in il:
+    if any(w in c for w in ("mensajes repetitivos", "respondiendo mensajes", "cuántos mensajes",
+                             "inbox", "notificaciones", "chat", "whatsapp")):
         return (
-            "Gentle dolly forward, warm steam rising, slow-motion pour, "
-            "golden light flicker, sensory and inviting. "
-            "No text. No logos. Photorealistic. 9:16 vertical."
+            "Close-up of smartphone screen overwhelmed with chat bubbles and notification badges "
+            "stacking up, hand holding phone with stressed expression blurred in background, "
+            "moody purple-blue office lighting, vertical composition."
         )
+    if any(w in c for w in ("24/7", "nunca descansa", "siempre disponible", "no descansa",
+                             "trabaja 24", "atiende 24")):
+        return (
+            "Futuristic AI dashboard on multiple screens glowing in a dark modern office at night, "
+            "data streams and conversation threads flowing in real-time, no human present, "
+            "purple and cyan neon accents, high-tech cinematic atmosphere."
+        )
+    if any(w in c for w in ("lead", "venta", "ventas", "conversión", "conversiones",
+                             "clientes potenciales", "cierra", "cerrar")):
+        return (
+            "Confident Latina entrepreneur smiling at laptop showing an upward sales graph, "
+            "modern minimalist office, warm golden light, phone in hand, "
+            "energy of achievement and growth, shallow bokeh background."
+        )
+    if any(w in c for w in ("behind", "detrás", "cámaras", "equipo", "team", "proceso interno",
+                             "how we", "así nace", "así nacemos")):
+        return (
+            "Dynamic tech team of diverse Latino professionals around a large monitor showing "
+            "AI conversation flows and dashboards, modern open-plan office, "
+            "purple accent lighting, authentic candid collaboration moment."
+        )
+    if any(w in c for w in ("testimonio", "testimonial", "juan", "carlos", "carolina",
+                             "caso de éxito", "caso de exito", "historia", "cliente dice")):
+        return (
+            "Happy Latino business owner sitting at a clean desk holding phone showing growth "
+            "metrics, genuine smile of relief and success, bright airy office, "
+            "warm natural light, motivational and aspirational mood."
+        )
+    if any(w in c for w in ("dato", "estadística", "estadistica", "73%", "47%", "45%",
+                             "sabías que", "sabias que", "estudio")):
+        return (
+            "Elegant data visualization floating in 3D space — glowing percentage numbers and "
+            "bar charts in purple and cyan, dark background, premium infographic aesthetic, "
+            "futuristic and clean, no readable text."
+        )
+    if any(w in c for w in ("webinar", "live", "clase", "evento", "cuenta regresiva", "48 horas")):
+        return (
+            "Professional Latina woman presenting on a laptop screen with a live video call, "
+            "modern home studio setup with ring light, excited expression, "
+            "vibrant purple accent wall, dynamic and energetic composition."
+        )
+    if any(w in c for w in ("carrito", "ingresos perdidos", "recupera", "dinero perdido",
+                             "revenue", "oportunidades perdidas")):
+        return (
+            "Stack of gold coins and a phone showing recovered revenue notification, "
+            "dark premium background with purple-gold lighting, "
+            "close-up product shot evoking money and technology, aspirational and concrete."
+        )
+    if any(w in c for w in ("automatiz", "ia ", "inteligencia artificial", "bot", "robot",
+                             "tecnología", "tecnologia", "herramienta")):
+        return (
+            "Sleek AI interface on a phone screen — chat bubbles appearing instantly, "
+            "no human needed, purple glow and smooth animations implied, "
+            "hand-free shot of phone propped on a modern desk, minimal and premium."
+        )
+    # generic fallback — still caption-aware
+    snippet = caption[:80].strip() if caption else ""
     return (
-        "Cinematic slow zoom in, atmospheric depth, elegant premium motion, "
-        "social media viral quality. No text. No logos. 9:16 vertical."
+        f"Cinematic lifestyle scene visualizing: '{snippet}'. "
+        "Latino professional, modern workspace, aspirational energy, premium aesthetic."
+    )
+
+
+def _image_prompt(brand: dict, content_type: str, caption: str = "") -> str:
+    color     = brand.get("color", "#635BFF")
+    geography = brand.get("geography", "United States")
+
+    scene = _scene_from_caption(caption)
+    style = (
+        "Cinematic vertical 9:16 photograph, editorial quality, "
+        "professional lifestyle photography, hyperrealistic, no text overlays, no logos, "
+        f"brand accent color {color}. Shot in {geography}. "
+        "Instagram Reels format, mobile-first composition, "
+        "dramatic lighting, aspirational and premium mood."
+    )
+    return f"{scene} {style}"
+
+
+def _motion_prompt(brand: dict, content_type: str, caption: str = "") -> str:
+    c = (caption or "").lower()
+    color = brand.get("color", "#635BFF")
+
+    if any(w in c for w in ("duerme", "duermas", "duermes", "noche", "2 am")):
+        move = "slow creeping push-in toward the glowing phone screen, deepening the night atmosphere"
+    elif any(w in c for w in ("mensajes", "notificaciones", "chat", "whatsapp")):
+        move = "rapid subtle vibration effect followed by smooth zoom-in on the screen, urgency then calm"
+    elif any(w in c for w in ("24/7", "dashboard", "data", "ia ", "bot")):
+        move = "fluid lateral dolly across the glowing screens, data streams appearing in motion"
+    elif any(w in c for w in ("venta", "ventas", "lead", "crecimiento", "éxito", "exito")):
+        move = "confident slow push-in toward the smiling face, warmth and energy building"
+    elif any(w in c for w in ("testimonio", "historia", "caso")):
+        move = "gentle handheld intimacy, slow zoom revealing the smile, emotional and real"
+    else:
+        move = "cinematic slow push-in, subtle parallax depth, premium social media quality"
+
+    return (
+        f"Camera motion: {move}. "
+        "No text. No logos. No watermarks. Photorealistic. 9:16 vertical. "
+        "Smooth professional cinematography, viral social media quality, "
+        f"color grade with {color} accent tones."
     )
 
 # ── Step 1: FLUX Pro v1.1 image (direct HTTP) ─────────────────────────────────
@@ -216,7 +280,7 @@ def generate_video(brand: dict, image_path: str, content_type: str = "reel",
     headers = {"Authorization": f"Key {fal}",
                "Content-Type": "application/json"}
     payload = {
-        "prompt":       _motion_prompt(brand, content_type),
+        "prompt":       _motion_prompt(brand, content_type, caption),
         "image_url":    image_url,
         "aspect_ratio": "9:16",
         "duration":     str(duration),
